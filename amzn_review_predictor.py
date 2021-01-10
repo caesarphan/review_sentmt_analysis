@@ -8,6 +8,7 @@ Created on Fri Jan  1 11:11:01 2021
 #123
 import pandas as pd
 import numpy as np
+import random
 
 import re
 import bz2
@@ -29,8 +30,12 @@ train_file = [x.decode('utf-8') for x in train_file_raw]
 test_file = [x.decode('utf-8') for x in test_file_raw]
 
 #normalize all words - lowercase
-train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in train_file]
-test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in test_file]
+random.seed(123)
+sample_train = random.sample(train_file, 300000)
+sample_test = random.sample(test_file, 10000)
+
+train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_train]
+test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
 
 plt.plot(train_sentences)
 plt.show()
