@@ -75,8 +75,23 @@ sns.set_theme(style="darkgrid")
 ax = sns.boxplot(x = 'good_review', y = 'num_words',
             hue="good_review",data = train_df)
 
-#remove url from reviews
 
+
+
+#WIP
+#remove url from reviews
+url_identifier = "((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*"
+
+temp_list_with_url = [i.split(' ') for i in test_sentences]
+
+
+for i in np.arange(len(train_sentences)):
+    if any(url in train_sentences[i] for url in url_identifier):
+        train_sentences[i] = re.sub(url_identifier, 'url', train_sentences[i])
+
+for i in np.arange(len(test_sentences)):
+    if any(url in train_sentences[i] for url in url_identifier):
+        train_sentences[i] = re.sub(url_identifier, 'url', train_sentences[i])
 
 #tokenize words
 #stemming and lemmatize
