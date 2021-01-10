@@ -29,16 +29,14 @@ test_file_raw = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test
 train_file = [x.decode('utf-8') for x in train_file_raw]
 test_file = [x.decode('utf-8') for x in test_file_raw]
 
+#for efficiency, randomly sample 300k to train, 10k to test
+# random.seed(123)
+# sample_train = random.sample(train_file, 300000)
+# sample_test = random.sample(test_file, 10000)
+
 #normalize all words - lowercase
-random.seed(123)
-sample_train = random.sample(train_file, 300000)
-sample_test = random.sample(test_file, 10000)
-
-train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_train]
-test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
-
-plt.plot(train_sentences)
-plt.show()
+train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in train_file]
+test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in test_file]
 
 #Display #word per review distribution
 words_per_review = list(map(lambda x: len(x.split()), train_sentences))
@@ -71,7 +69,7 @@ temp_data = list(zip(words_per_review, train_label))
 train_df = pd.DataFrame(temp_data, columns = ('num_words', 'good_review'))
 
 sns.set_theme(style="darkgrid")
-sns.boxplot(x = 'good_review', y = 'num_words',
+ax = sns.boxplot(x = 'good_review', y = 'num_words',
             hue="good_review",data = train_df)
 
 
