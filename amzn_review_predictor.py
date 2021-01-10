@@ -22,8 +22,8 @@ from sklearn.svm import SVC
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
-train_file_raw = bz2.BZ2File('C:/Users/caesa/Documents/projects/review_sentmt_analysis/train.ft.txt.bz2')
-test_file_raw = bz2.BZ2File('C:/Users/caesa/Documents/projects/review_sentmt_analysis/test.ft.txt.bz2')
+train_file_raw = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
+test_file_raw = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
 
 train_file = [x.decode('utf-8') for x in train_file_raw]
 test_file = [x.decode('utf-8') for x in test_file_raw]
