@@ -50,14 +50,16 @@ plt.show()
 def list_stats(x):
     print('mean: {}, median {}, max words: {}, min words: {}'.
           format(round(np.mean(x),2),np.median(x),np.max(x), np.min(x)))
-    
+
+#display stats on words in corpus    
 list_stats(words_per_review)
 # mean: 78.48, median 70.0, max words: 257, min words: 2
 
-#sentiment of each review
+#Label each review
     #label_2 = good review, label 1 = bad
     #0 --> bad reviews
     #1 --> good reviews
+    
 def review_type(x):
     return 1 if re.match("__label__2", x) is not None else 0
 
@@ -68,9 +70,12 @@ words_per_review = list(map(lambda x: len(x.split()), train_sentences))
 temp_data = list(zip(words_per_review, train_label))
 train_df = pd.DataFrame(temp_data, columns = ('num_words', 'good_review'))
 
+#compare words count by review type
 sns.set_theme(style="darkgrid")
 ax = sns.boxplot(x = 'good_review', y = 'num_words',
             hue="good_review",data = train_df)
+
+#remove url from reviews
 
 
 #tokenize words
