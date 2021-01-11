@@ -207,8 +207,29 @@ test_df['tokenized'] = test_sent
 
 #WIP
 #remove punctuations
-train_df['tokenized'] = train_df['not_contrac'].apply(word_tokenize)
-test_df['tokenized'] = test_df['not_contrac'].apply(word_tokenize)
+punc = string.punctuation
+
+def remove_punc(corpus):
+    output = []
+    
+    for docs in corpus:       
+        
+        temp_list = []
+        for i,word in enumerate(docs):
+            temp_list.extend([word for word in docs if word not in punc])
+            
+        output.append(temp_list)                   
+    return output
+   
+aa_trial = test_sent.copy()
+aa_test = remove_punc(aa_trial)
+
+train_sent = remove_punc(train_sent)
+test_sent = [word_tokenize(doc) for doc in test_sent]
+
+train_df['tokenized'] = train_sent
+test_df['tokenized'] = test_sent
+
 
 #identify and remove 'stopwords' (i.e. the, a)
 stopwords = stopwords.words('english')
