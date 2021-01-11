@@ -18,10 +18,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import nltk
+# nltk.download('averaged_perceptron_tagger')
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk import pos_tag
 from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
+nltk.download('wordnet') 
+from nltk.corpus import stopwords, wordnet
 # nltk.download('stopwords')
 from string import punctuation
 from sklearn.model_selection import train_test_split
@@ -29,7 +31,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 
 from sklearn.svm import SVC
 
-from nltk.stem.porter import PorterStemmer
+# from nltk.stem.porter import PorterStemmer
 
 data_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
 data_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
@@ -233,20 +235,56 @@ test_sent = remove_punc(test_sent)
 train_df['no_punc'] = train_sent
 test_df['no_punc'] = test_sent
 
+del [punc, punctuation]
 
 #identify and remove 'stopwords' (i.e. the, a)
 stopwords = stopwords.words('english')
 keep_words = ['no', 'but', 'not']
-for words in keep_words:
-    stopwords.remove(words)
+stopwords = [word for word in stopwords if word not in keep_words]
+
+train_df['rmv_stopwords'] = train_df['no_punc'].apply(lambda x: [word for word in x if word not in stopwords])
+test_df['rmv_stopwords'] = test_df['no_punc'].apply(lambda x: [word for word in x if word not in stopwords])
+
+del [stopwords, keep_words]
 
 
-#lemmatize
+#Part of Speech
+train_df['pos_tag'] = train_df['rmv_stopwords'].apply(nltk.pos_tag)
+test_df['pos_tag'] = test_df['rmv_stopwords'].apply(nltk.pos_tag)
 
+#wordnet pos tag
+def pos_tagger(nltk_tag): 
+    if nltk_tag.startswith('J'): 
+        return wordnet.ADJ 
+    elif nltk_tag.startswith('V'): 
+        return wordnet.VERB 
+    elif nltk_tag.startswith('N'): 
+        return wordnet.NOUN 
+    elif nltk_tag.startswith('R'): 
+        return wordnet.ADV 
+    else:           
+        return None
 
+train_df['wnl_pos'] = train_df['pos_tag'].apply(lambda x: [(word, pos_tagger(tag)) for (word, tag) in x])
+test_df['wnl_pos'] = test_df['pos_tag'].apply(lambda x: [(word, pos_tagger(tag)) for (word, tag) in x])
 
+#Lemmatize
 
+# train_df['lemmatized'] = train_df['wnl_pos'].apply(lambda x: [wnl.lemmatize(word, tag) for word, tag in x])
+# test_df['lemmatized'] = test_df['wnl_pos'].apply(lambda x: [wnl.lemmatize(word, tag) for word, tag in x])
+wnl = WordNetLemmatizer()
 
+def lemmatized(doc):
+    
+    lemmatized_sentence = [] 
+    for word, tag in doc: 
+        if tag is None: 
+            # if there is no available tag, append the token as is 
+            lemmatized_sentence.append(word) 
+        else:         
+            # else use the tag to lemmatize the token 
+            lemmatized_sentence.append(wnl.lemmatize(word, tag)) 
+    return lemmatized_sentence
 
-
-
+train_df['lemmatized']= train_df['wnl_pos'].apply(lemmatized)
+test_df['lemmatized']= test_df['wnl_pos'].apply(lemmatized)
