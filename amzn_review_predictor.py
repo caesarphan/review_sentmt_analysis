@@ -22,9 +22,10 @@ import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk import pos_tag
 from nltk.stem import WordNetLemmatizer
-nltk.download('wordnet') 
+# nltk.download('wordnet') 
 from nltk.corpus import stopwords, wordnet
 # nltk.download('stopwords')
+# nltk.download('punkt')
 from string import punctuation
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
@@ -33,8 +34,13 @@ from sklearn.svm import SVC
 
 # from nltk.stem.porter import PorterStemmer
 
-data_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
-data_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
+# #windows
+# data_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
+# data_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
+
+#macOS
+data_train = bz2.BZ2File('/Users/caesarphan/Documents/projects/amazon_reviews/train.ft.txt.bz2')
+data_test = bz2.BZ2File('/Users/caesarphan/Documents/projects/amazon_reviews/test.ft.txt.bz2')
 
 data_train = [x.decode('utf-8') for x in data_train]
 data_test = [x.decode('utf-8') for x in data_test]
@@ -87,13 +93,13 @@ review_length_test = list(map(lambda x: len(x.split()), test_sent))
 temp_train_data = list(zip(train_label, train_sent, review_length_train))
 temp_test_data = list(zip(test_label, test_sent, review_length_test))
 
-train_df = pd.DataFrame(temp_train_data, columns = ('good_review', 'review_raw','num_words'))
-test_df = pd.DataFrame(temp_test_data, columns = ('good_review', 'review_raw','num_words'))
+train_df = pd.DataFrame(temp_train_data, columns = ('good_review', 'review_raw','preclean_len'))
+test_df = pd.DataFrame(temp_test_data, columns = ('good_review', 'review_raw','preclean_len'))
 
 #cleanup irrelevant objects
 del [size_train, size_test, words_per_review,train_label, test_label,
      review_length_train, review_length_test,
-     temp_train_data, temp_test_data, sample_train, sample_test]
+     temp_train_data, temp_test_data, data_train, data_test]
 
 #compare words count by review type
 sns.set_theme(style="darkgrid")
@@ -223,7 +229,7 @@ def remove_punc(corpus):
             
         output.append(temp_list)                   
     return output
-#Test
+# Test
     # aa_trial = test_sent.copy()
     # aa_test = remove_punc(aa_trial)
     # ' '.join(aa_test[60])
@@ -235,7 +241,7 @@ test_sent = remove_punc(test_sent)
 train_df['no_punc'] = train_sent
 test_df['no_punc'] = test_sent
 
-del [punc, punctuation]
+del [punc]
 
 #identify and remove 'stopwords' (i.e. the, a)
 stopwords = stopwords.words('english')
@@ -248,7 +254,7 @@ test_df['rmv_stopwords'] = test_df['no_punc'].apply(lambda x: [word for word in 
 del [stopwords, keep_words]
 
 
-#Part of Speech
+#identify each token's part of speech
 train_df['pos_tag'] = train_df['rmv_stopwords'].apply(nltk.pos_tag)
 test_df['pos_tag'] = test_df['rmv_stopwords'].apply(nltk.pos_tag)
 
@@ -268,6 +274,8 @@ def pos_tagger(nltk_tag):
 train_df['wnl_pos'] = train_df['pos_tag'].apply(lambda x: [(word, pos_tagger(tag)) for (word, tag) in x])
 test_df['wnl_pos'] = test_df['pos_tag'].apply(lambda x: [(word, pos_tagger(tag)) for (word, tag) in x])
 
+del wordnet
+
 #Lemmatize
 wnl = WordNetLemmatizer()
 
@@ -281,7 +289,28 @@ def lemmatized(doc):
         else:         
             # else use the tag to lemmatize the token 
             lemmatized_sentence.append(wnl.lemmatize(word, tag)) 
-    return lemmatized_sentence
 
+    return lemmatized_sentence
 train_df['lemmatized']= train_df['wnl_pos'].apply(lemmatized)
 test_df['lemmatized']= test_df['wnl_pos'].apply(lemmatized)
+
+del wnl
+
+#illustrate histogram of words
+train_df['postclean_len'] = train_df['lemmatized'].apply(lambda x: len(x))
+
+#compare before and after cleaned                     
+ax = sns.displot(data = train_df, x = 'postclean_len', hue = 'good_review', kind = 'kde')
+
+#violin plot of word length
+ax = sns.catplot(data = train_df, y = 'postclean_len', palette = "Set2",x = 'good_review', kind = 'violin')
+
+#list stats for postcleaned data
+list_stats(train_df.loc[train_df['good_review']==1]['postclean_len'])
+#good reviews --> mean: 41.73, median 36.0, max words: 175, min words: 6
+
+list_stats(train_df.loc[train_df['good_review']==0]['postclean_len'])
+#bad reviews -->mean: 45.42, median 41.0, max words: 163, min words: 7
+
+
+
