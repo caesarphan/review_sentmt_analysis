@@ -9,6 +9,7 @@ Created on Fri Jan  1 11:11:01 2021
 import pandas as pd
 import numpy as np
 import random
+import contractions
 
 import re
 import bz2
@@ -78,10 +79,6 @@ sns.set_theme(style="darkgrid")
 ax = sns.boxplot(x = 'good_review', y = 'num_words',
             hue="good_review",data = train_df)
 
-
-
-
-#WIP
 #replace url with 'url'
 url_key_word = ['www.', '.gov', '.net', '.org', 'http','https']
 
@@ -118,7 +115,24 @@ def digit_replace(x):
 digit_replace(train_sentences)
 digit_replace(test_sentences)
 
+#replace contractions
+def contraction_replace(x):
+     for i in np.arange(len(x)):
+        x[i] = [contractions.fix(word) for word in x[i].split()]
+        
+aa = ["Hello World my name isn't caesar", "purple shoes couldn't be worn?!",
+      "What's the point of it all?", "Tell Mark I said Hello!!!!"]
+contraction_replace(aa)
+#identify and remove 'stopwords' (i.e. didn't, is, !!!)
 
+
+
+
+#WIP
+remove stop words
+stopwords=nltk.corpus.stopwords.words('english')
+keep_words = ['no', 'but', 'not', ]
+stopwords.remove
 #tokenize words
 
 
