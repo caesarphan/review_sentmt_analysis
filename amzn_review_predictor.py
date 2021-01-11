@@ -30,15 +30,23 @@ from sklearn.svm import SVC
 
 from nltk.stem.porter import PorterStemmer
 
-raw_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
-raw_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
+data_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
+data_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
 
-raw_train = [x.decode('utf-8') for x in raw_train]
-raw_test = [x.decode('utf-8') for x in raw_test]
+data_train = [x.decode('utf-8') for x in data_train]
+data_test = [x.decode('utf-8') for x in data_test]
+
+#for efficiency, randomly sample 300k to train, 10k to test
+random.seed(123)
+size_train = (len(data_train)/10)
+test_size = (len(data_test)/10)
+
+sample_train = random.sample(data_train, int(size_train))
+sample_test = random.sample(data_test, int(test_size))
 
 #normalize all words to lowercase
-train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in raw_train]
-test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in raw_test]
+train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_train]
+test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
 
 #Display #word per review distribution
 words_per_review = list(map(lambda x: len(x.split()), train_sentences))
@@ -66,8 +74,8 @@ list_stats(words_per_review)
 # def review_type(x):
 #     return 1 if re.match("__label__2", x) is not None else 0
 
-train_label = [0 if x[:10] == '__label__1' else 1 for x in raw_train]
-test_label = [0 if x[:10] == '__label__1' else 1 for x in raw_test]
+train_label = [0 if x[:10] == '__label__1' else 1 for x in sample_train]
+test_label = [0 if x[:10] == '__label__1' else 1 for x in sample_test]
 
 #create data frame storing review updates
 review_length_train = list(map(lambda x: len(x.split()), train_sentences))
@@ -119,10 +127,12 @@ url_key = "([^ ]+(?<=\.[a-z]{3}))"
 
 def url_replace(x):
     output = []
+    
     for i in np.arange(len(x)):
         if any(key_word in x[i] for key_word in url_key_word):
             x[i] = re.sub(url_key, 'url', x[i])
         output.append(x[i])
+        
     return output
 
 
@@ -134,19 +144,39 @@ test_df['url_replace'] = test_sentences
 
 
 #replace digits
-def digit_replace(x):
-    for i in np.arange(len(x)):
-        x[i] = re.sub(r"\d", '0', x[i])
+def digit_replace(corpus):
+    
+    output = []
+    
+    for docs in corpus:       
+        
+        temp_list = []
+        for i,word in enumerate(docs.split(' ')):
+            temp_list.extend([word if word.isdigit() == False else '0'])
+            
+        output.append(' '.join(temp_list))                   
+    return output
+
+#Test function works
+    # aa = test_sentences.copy()
+    # aa = digit_replace(aa)
+    # data_test[39993]
+    # aa[39993]
 
 train_sentences = digit_replace(train_sentences)
 test_sentences = digit_replace(test_sentences)
 
 train_df['digit_replace'] = digit_replace(train_sentences)
-train_df['digit_replace'] = digit_replace(test_sentences)
+test_df['digit_replace'] = digit_replace(test_sentences)
 
+
+#WIP
 #tokenize words
-train_df['tokenized'] = train_df
 
+train_copy = word_tokenize(train_sentences)
+
+train_df['tokenized'] = train_copy
+test_df['tokenized'] = test_df['digit_replace'].apply(word_tokenize)
 
 #replace contractions
 def contraction_replace(x):
@@ -168,14 +198,8 @@ for words in keep_words:
     stopwords.remove(words)
 
 
-
-#WIP
-
-
 #stemming and lemmatize
 #remove punctuations
-#remove digits
-#remove url
 
 
 
