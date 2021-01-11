@@ -39,8 +39,8 @@ data_test = [x.decode('utf-8') for x in data_test]
 
 #for efficiency, randomly sample 300k to train, 10k to test
 random.seed(123)
-size_train = (len(data_train)/10)
-size_test = (len(data_test)/10)
+size_train = (len(data_train)/40)
+size_test = (len(data_test)/40)
 
 sample_train = random.sample(data_train, int(size_train))
 sample_test = random.sample(data_test, int(size_test))
@@ -213,22 +213,25 @@ def remove_punc(corpus):
     output = []
     
     for docs in corpus:       
-        
-        temp_list = []
-        for i,word in enumerate(docs):
-            temp_list.extend([word for word in docs if word not in punc])
+        temp_list = [word for word in docs if word not in punc]
+            
+        # temp_list = []
+        # for word in enumerate(docs):
+        #     temp_list.extend(word) if word not in punc            
             
         output.append(temp_list)                   
     return output
-   
-aa_trial = test_sent.copy()
-aa_test = remove_punc(aa_trial)
+#Test
+    # aa_trial = test_sent.copy()
+    # aa_test = remove_punc(aa_trial)
+    # ' '.join(aa_test[60])
+    # ' '.join(aa_trial[60])
 
 train_sent = remove_punc(train_sent)
-test_sent = [word_tokenize(doc) for doc in test_sent]
+test_sent = remove_punc(test_sent)
 
-train_df['tokenized'] = train_sent
-test_df['tokenized'] = test_sent
+train_df['no_punc'] = train_sent
+test_df['no_punc'] = test_sent
 
 
 #identify and remove 'stopwords' (i.e. the, a)
