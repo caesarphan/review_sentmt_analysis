@@ -269,9 +269,6 @@ train_df['wnl_pos'] = train_df['pos_tag'].apply(lambda x: [(word, pos_tagger(tag
 test_df['wnl_pos'] = test_df['pos_tag'].apply(lambda x: [(word, pos_tagger(tag)) for (word, tag) in x])
 
 #Lemmatize
-
-# train_df['lemmatized'] = train_df['wnl_pos'].apply(lambda x: [wnl.lemmatize(word, tag) for word, tag in x])
-# test_df['lemmatized'] = test_df['wnl_pos'].apply(lambda x: [wnl.lemmatize(word, tag) for word, tag in x])
 wnl = WordNetLemmatizer()
 
 def lemmatized(doc):
