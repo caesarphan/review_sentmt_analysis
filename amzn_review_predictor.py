@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import random
 import contractions
+import string
 
 import re
 import bz2
@@ -39,17 +40,17 @@ data_test = [x.decode('utf-8') for x in data_test]
 #for efficiency, randomly sample 300k to train, 10k to test
 random.seed(123)
 size_train = (len(data_train)/10)
-test_size = (len(data_test)/10)
+size_test = (len(data_test)/10)
 
 sample_train = random.sample(data_train, int(size_train))
-sample_test = random.sample(data_test, int(test_size))
+sample_test = random.sample(data_test, int(size_test))
 
 #normalize all words to lowercase
-train_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_train]
-test_sentences = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
+train_sent = [x.split(' ', 1)[1][:-1].lower() for x in sample_train]
+test_sent = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
 
 #Display #word per review distribution
-words_per_review = list(map(lambda x: len(x.split()), train_sentences))
+words_per_review = list(map(lambda x: len(x.split()), train_sent))
 
 sns.displot(words_per_review)
 plt.xlabel('words')
@@ -78,18 +79,19 @@ train_label = [0 if x[:10] == '__label__1' else 1 for x in sample_train]
 test_label = [0 if x[:10] == '__label__1' else 1 for x in sample_test]
 
 #create data frame storing review updates
-review_length_train = list(map(lambda x: len(x.split()), train_sentences))
-review_length_test = list(map(lambda x: len(x.split()), test_sentences))
+review_length_train = list(map(lambda x: len(x.split()), train_sent))
+review_length_test = list(map(lambda x: len(x.split()), test_sent))
 
-temp_train_data = list(zip(train_label, train_sentences, review_length_train))
-temp_test_data = list(zip(test_label, test_sentences, review_length_test))
+temp_train_data = list(zip(train_label, train_sent, review_length_train))
+temp_test_data = list(zip(test_label, test_sent, review_length_test))
 
 train_df = pd.DataFrame(temp_train_data, columns = ('good_review', 'review_raw','num_words'))
 test_df = pd.DataFrame(temp_test_data, columns = ('good_review', 'review_raw','num_words'))
 
 #cleanup irrelevant objects
-del [words_per_review,train_label, test_label, review_length_train, review_length_test,
-     temp_train_data, temp_test_data]
+del [size_train, size_test, words_per_review,train_label, test_label,
+     review_length_train, review_length_test,
+     temp_train_data, temp_test_data, sample_train, sample_test]
 
 #compare words count by review type
 sns.set_theme(style="darkgrid")
@@ -113,8 +115,8 @@ def url_check(x):
 # np.sum(url_with_review)
 #     #9422 instances
 
-train_df['with_url'] = url_check(train_sentences)
-test_df['with_url'] = url_check(test_sentences)
+train_df['with_url'] = url_check(train_sent)
+test_df['with_url'] = url_check(test_sent)
 
 #check that texts are identified
 # train_df.loc[train_df['with_url']==1]
@@ -136,12 +138,13 @@ def url_replace(x):
     return output
 
 
-train_sentences = url_replace(train_sentences)
-test_sentences = url_replace(test_sentences)
+train_sent = url_replace(train_sent)
+test_sent = url_replace(test_sent)
 
-train_df['url_replace'] = train_sentences
-test_df['url_replace'] = test_sentences
+train_df['url_replace'] = train_sent
+test_df['url_replace'] = test_sent
 
+del [url_key,url_key_word]
 
 #replace digits
 def digit_replace(corpus):
@@ -158,38 +161,54 @@ def digit_replace(corpus):
     return output
 
 #Test function works
-    # aa = test_sentences.copy()
+    # aa = test_sent.copy()
     # aa = digit_replace(aa)
     # data_test[39993]
     # aa[39993]
 
-train_sentences = digit_replace(train_sentences)
-test_sentences = digit_replace(test_sentences)
+train_sent = digit_replace(train_sent)
+test_sent = digit_replace(test_sent)
 
-train_df['digit_replace'] = digit_replace(train_sentences)
-test_df['digit_replace'] = digit_replace(test_sentences)
-
-
-#WIP
-#tokenize words
-
-train_copy = word_tokenize(train_sentences)
-
-train_df['tokenized'] = train_copy
-test_df['tokenized'] = test_df['digit_replace'].apply(word_tokenize)
+train_df['digit_replace'] = digit_replace(train_sent)
+test_df['digit_replace'] = digit_replace(test_sent)
 
 #replace contractions
-def contraction_replace(x):
-     for i in np.arange(len(x)):
+def contrac_replace(x):
+    output = []
+    for i in np.arange(len(x)):
         x[i] = [contractions.fix(word) for word in x[i].split()]
+        output.append(' '.join(x[i]))
+    return output
+   
     #test that contractions are extended            
     # aa = ["Hello World my name isn't caesar", "purple shoes couldn't be worn?!",
     #       "What's the point of it all?", "Tell Mark I said Hello!!!!"]
     # contraction_replace(aa)
     
-train_df['contraction'] = contraction_replace(train_sentences)
-test_df['contraction'] = contraction_replace(test_sentences)   
+    
+    #test contractsions index 26
+        # aa_test = test_sent.copy()
+        # aa_test_v2 = contrac_replace(aa_test)
 
+train_sent = contrac_replace(train_sent)
+test_sent = contrac_replace(test_sent)
+    
+train_df['not_contrac'] = train_sent
+test_df['not_contrac'] = test_sent
+
+#tokenize words
+
+train_sent = [word_tokenize(doc) for doc in train_sent]
+test_sent = [word_tokenize(doc) for doc in test_sent]
+
+train_df['tokenized'] = train_sent
+test_df['tokenized'] = test_sent
+
+
+#WIP
+#remove punctuations
+train_df['tokenized'] = train_df['not_contrac'].apply(word_tokenize)
+test_df['tokenized'] = test_df['not_contrac'].apply(word_tokenize)
 
 #identify and remove 'stopwords' (i.e. the, a)
 stopwords = stopwords.words('english')
@@ -198,8 +217,8 @@ for words in keep_words:
     stopwords.remove(words)
 
 
-#stemming and lemmatize
-#remove punctuations
+#lemmatize
+
 
 
 
