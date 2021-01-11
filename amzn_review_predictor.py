@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk import pos_tag
+from nltk.stem import WordNetLemmatizer
+from string import punctuation
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -79,35 +82,46 @@ ax = sns.boxplot(x = 'good_review', y = 'num_words',
 
 
 #WIP
-#remove url from reviews
-url_identifier = "([^ ]+(?<=\.[a-z]{3}))"
-# url_identifier_v2 = re.compile(url_identifier)
-# temp_list_with_url = train_sentences[0:1000]
+#replace url with 'url'
+url_key_word = ['www.', '.gov', '.net', '.org', 'http','https']
 
-
-# train_includes_url = []
-# # for i in np.arange(len(temp_list_with_url)):
-# #     train_includes_url.append(1) if any(url_identifier in word for word in temp_list_with_url[i]) else train_includes_url.append(0)
+url_with_review = []
+for i in np.arange(len(train_sentences)):
+    if any(key_word in train_sentences[i] for key_word in url_key_word):
+        url_with_review.append(1)
+    else:
+        url_with_review.append(0)
         
-# for i in np.arange(len(temp_list_with_url)):
-#     if re.search(url_identifier, temp_list_with_url[i]) == None:
-#         train_includes_url.append(0)
-#     else:
-#         train_includes_url.append(1)
+#url instances
+np.sum(url_with_review)
+#9422 instances
 
-# for i in np.arange(len(temp_list_with_url)):
-#     if any(url_identifier in temp_list_with_url[i]):
-#         temp_list_with_url[i] = re.sub(url_identifier, 'url', train_sentences[i])
+train_df.loc[train_df['url']==1]
+#index 193, 436, 1797 have url
 
-# for i in np.arange(len(train_sentences)):
-#     if any(url in train_sentences[i] for url in url_identifier):
-#         train_sentences[i] = re.sub(url_identifier, 'url', train_sentences[i])
+#replace website with 'url'
 
-# for i in np.arange(len(test_sentences)):
-#     if any(url in train_sentences[i] for url in url_identifier):
-#         train_sentences[i] = re.sub(url_identifier, 'url', train_sentences[i])
+url_key = "([^ ]+(?<=\.[a-z]{3}))"
+def url_replace(x):
+    for i in np.arange(len(x)):
+        if any(key_word in x[i] for key_word in url_key_word):
+            x[i] = re.sub(url_key, 'url', x[i])
+            
+url_replace(train_sentences)
+url_replace(test_sentences)
+
+#replace digits
+def digit_replace(x):
+    for i in np.arange(len(x)):
+        x[i] = re.sub(r"\d", '0', x[i])
+
+digit_replace(train_sentences)
+digit_replace(test_sentences)
+
 
 #tokenize words
+
+
 #stemming and lemmatize
 #remove punctuations
 #remove digits
