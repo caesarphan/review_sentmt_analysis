@@ -29,6 +29,7 @@ from nltk.corpus import stopwords, wordnet
 from string import punctuation
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import BernoulliNB
 
 from sklearn.svm import SVC
 
@@ -56,6 +57,7 @@ sample_test = random.sample(data_test, int(size_test))
 #normalize all words to lowercase
 train_sent = [x.split(' ', 1)[1][:-1].lower() for x in sample_train]
 test_sent = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
+
 
 #Display #word per review distribution
 words_per_review = list(map(lambda x: len(x.split()), train_sent))
@@ -96,6 +98,13 @@ temp_test_data = list(zip(test_label, test_sent, review_length_test))
 train_df = pd.DataFrame(temp_train_data, columns = ('good_review', 'review_raw','preclean_len'))
 test_df = pd.DataFrame(temp_test_data, columns = ('good_review', 'review_raw','preclean_len'))
 
+train_df.good_review.value_counts()
+    # #number of good and bad reviews are basically uniform
+    # 0    45217
+    # 1    44783
+    # Name: good_review, dtype: int64
+    
+    
 #cleanup irrelevant objects
 del [size_train, size_test, words_per_review,train_label, test_label,
      review_length_train, review_length_test,
@@ -327,29 +336,33 @@ train_df['sentences'] = train_df['lemmatized'].apply(lambda x: ' '.join(x))
 df_train = train_df.loc[:,['good_review', 'postclean_len','lemmatized']]
 df_test = test_df.loc[:,['good_review', 'postclean_len','lemmatized']]
 
-#bag of words
+#vectorize words
 df_train['sentences'] = df_train['lemmatized'].apply(lambda x: ' '.join(x))
 df_test['sentences'] = df_test['lemmatized'].apply(lambda x: ' '.join(x))
 
-vect = CountVectorizer()
-vect.fit(df_train['sentences'])
-vect.get_feature_names()
-vect.vocabulary_
+vectorizer = CountVectorizer()
+vectorizer.fit(df_train['sentences'])
+vectorizer.get_feature_names()
+vectorizer.vocabulary_
 
 #view first sample
-vect0 = vect.transform([df_train['sentences'][0]]).toarray()[0]
+vectorizer0 = vectorizer.transform([df_train['sentences'][0]]).toarray()[0]
 
-print('Vectorized length: ')
-print(len(vect0))
+print('vectorizerorized length: ')
+print(len(vectorizer0))
 print()
 
 print('First review [0] num words: ')
-print(np.sum(vect0))
+print(np.sum(vectorizer0))
 print()
 
+# What if we wanted to go back to the source?
+print('To the source:')
+print(vectorizer.inverse_transform(vectorizer0))
+print()
 
-
-
+vectorizer = CountVectorizer()
+train_vectorizer = vectorizer.fit_transform(df_train.sentences)
 
 
 
