@@ -27,10 +27,13 @@ from nltk.corpus import stopwords, wordnet
 # nltk.download('stopwords')
 # nltk.download('punkt')
 from string import punctuation
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import BernoulliNB
-
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import confusion_matrix, f1_score
+from sklearn import metrics
 from sklearn.svm import SVC
 
 # from nltk.stem.porter import PorterStemmer
@@ -63,8 +66,8 @@ test_sent = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
 words_per_review = list(map(lambda x: len(x.split()), train_sent))
 
 sns.displot(words_per_review)
-plt.xlabel('words')
-plt.ylabel('Number of words')
+plt.xlabel('Word Length')
+plt.ylabel('Number of Reviews')
 plt.title('Word Frequency')
 plt.show()
 
@@ -336,47 +339,114 @@ train_df['sentences'] = train_df['lemmatized'].apply(lambda x: ' '.join(x))
 df_train = train_df.loc[:,['good_review', 'postclean_len','lemmatized']]
 df_test = test_df.loc[:,['good_review', 'postclean_len','lemmatized']]
 
-#vectorize words
-df_train['sentences'] = df_train['lemmatized'].apply(lambda x: ' '.join(x))
-df_test['sentences'] = df_test['lemmatized'].apply(lambda x: ' '.join(x))
+#lemmatized sentences
+df_train['lemm_sent'] = df_train['lemmatized'].apply(lambda x: ' '.join(x))
+df_test['lemm_sent'] = df_test['lemmatized'].apply(lambda x: ' '.join(x))
+
+#identify in english review type
+df_train['review_type'] = df_train.good_review.map({0:'bad', 1:'good'})
+df_test['review_type'] = df_test.good_review.map({0:'bad', 1:'good'})
+
+df_train.review_type.value_counts()
+
+#train_test_split data - simulate real world
+
+final_train = df_train[:][['lemm_sent','good_review']]
+final_test = df_test[:][['lemm_sent','good_review']]
+
+final_train.columns = ['text', 'label']
+final_test.columns = ['text', 'label']
+
+
+X, y = final_train.text, final_train.label
+X_train, X_test, y_train, y_test = train_test_split(X, y,test_size = 0.2, random_state=123)
+print(X_train.shape)
+print(X_test.shape)
+print(y_train.shape)
+print(y_test.shape)
+
+pipeline = Pipeline([
+    ('vect', CountVectorizer()),
+    ('tfidf', TfidfTransformer(use_idf=True, smooth_idf = True)),
+    ('bnb', BernoulliNB(alpha = 1))])
+
+#Vectorize dataset
+
+# Vect test broken down
+    # vectorizer = CountVectorizer()
+    # vectorizer.fit(df_train['sentences'])
+    # vectorizer.get_feature_names()
+    # vectorizer.vocabulary_
+    
+    # #view first sample
+    # vectorizer0 = vectorizer.transform([df_train['sentences'][0]]).toarray()[0]
+    
+    # print('vectorizerorized length: ')
+    # print(len(vectorizer0))
+    # print()
+    
+    # print('First review [0] num words: ')
+    # print(np.sum(vectorizer0))
+    # print()
+    
+    # # What if we wanted to go back to the source?
+    # print('To the source:')
+    # print(vectorizer.inverse_transform(vectorizer0))
+    # print()
+
 
 vectorizer = CountVectorizer()
-vectorizer.fit(df_train['sentences'])
-vectorizer.get_feature_names()
-vectorizer.vocabulary_
+X, y = df_train.lemm_sent, df_train.review_type
+X_train, X_test, y_train, y_test = train_test_split(X, y,test_size = 0.2, random_state=123)
 
-#view first sample
-vectorizer0 = vectorizer.transform([df_train['sentences'][0]]).toarray()[0]
+# Vectorize data and labels
+X_train_matrix = vectorizer.fit_transform(X_train)
+y_train_matrix = vectorizer.fit_transform(y_train)
+X_test_matrix = vectorizer.transform(X_test)
+X_test_matrix
 
-print('vectorizerorized length: ')
-print(len(vectorizer0))
-print()
+# display features
+    # display_train_matrix = X_train_matrix.copy()
+    # display_train_matrix = pd.DataFrame(display_train_matrix.toarray(), columns=vectorizer.get_feature_names())
+    #file ended up too large
+    
+# BernoulliNB 1 fold cross validation
+nb = BernoulliNB()
+#A)1 fold
+    # %time nb.fit(X_train_matrix, y_train)
+    
+    # %time y_pred_= nb.predict(X_test_matrix)
+    # metrics.accuracy_score(y_test, y_pred_)
 
-print('First review [0] num words: ')
-print(np.sum(vectorizer0))
-print()
+#B) BernoulliNB 10 fold cross validation
+    # cv10 = KFold(n_splits=10, shuffle=True, random_state=123).split(X_train_matrix, y_train)
+    # print(cross_val_score(nb, X_train_matrix, y_train, cv=cv10, n_jobs=1))
 
-# What if we wanted to go back to the source?
-print('To the source:')
-print(vectorizer.inverse_transform(vectorizer0))
-print()
+#C) BernoulliNB 10 fold cross validation
+# X = np.array(df_train['lemm_sent'])
+# y = np.array(df_train['review_type'])
 
-vectorizer = CountVectorizer()
-train_vectorizer = vectorizer.fit_transform(df_train.sentences)
+kf = KFold(n_splits=10, shuffle=True, random_state=123)
+scores = []
+confusion = np.array([[0,0], [0,0]])
+      
+for train_indices, test_indices in kf.split(final_train):
+    train_text = final_train.iloc[train_indices]['text']
+    train_y = final_train.iloc[train_indices]['label']
 
+    test_text = final_train.iloc[test_indices]['text']
+    test_y = final_train.iloc[test_indices]['label']
+      
+    pipeline.fit(train_text, train_y)
+    predictions = pipeline.predict(test_text)
 
+    confusion += confusion_matrix(test_y, predictions)
+    print(confusion)
+    score = f1_score(test_y, predictions, pos_label = 1)
+    scores.append(score)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+print('Confusion Matrix:')
+print( confusion)
+print('Score:',round(sum(scores)/len(scores),2))
+      
+      
