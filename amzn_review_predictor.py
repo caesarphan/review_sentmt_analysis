@@ -807,3 +807,5 @@ print(classification_report(test_y, predict))
 
 
 #D) pipeline 10 fold cross validation
+
+#Still need to do grid search, update y-pred / test (in kfold cv)
