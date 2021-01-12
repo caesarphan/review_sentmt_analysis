@@ -32,9 +32,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import confusion_matrix, f1_score
+from sklearn.metrics import confusion_matrix, f1_score, classification_report
 from sklearn import metrics
-from sklearn.svm import SVC
+# from sklearn.svm import SVC
 
 # from nltk.stem.porter import PorterStemmer
 
@@ -51,8 +51,11 @@ data_test = [x.decode('utf-8') for x in data_test]
 
 #for efficiency, randomly sample 300k to train, 10k to test
 random.seed(123)
-size_train = (len(data_train)/40)
-size_test = (len(data_test)/40)
+# size_train = (len(data_train)/40)
+# size_test = (len(data_test)/40)
+
+size_train = (1000)
+size_test = (100)
 
 sample_train = random.sample(data_train, int(size_train))
 sample_test = random.sample(data_test, int(size_test))
@@ -351,11 +354,11 @@ df_train.review_type.value_counts()
 
 #train_test_split data - simulate real world
 
-final_train = df_train[:][['lemm_sent','good_review']]
-final_test = df_test[:][['lemm_sent','good_review']]
+final_train = df_train[:][['lemm_sent','good_review', 'review_type']]
+final_test = df_test[:][['lemm_sent','good_review', 'review_type']]
 
-final_train.columns = ['text', 'label']
-final_test.columns = ['text', 'label']
+final_train.columns = ['text', 'val', 'label']
+final_test.columns = ['text', 'val', 'label']
 
 
 X, y = final_train.text, final_train.label
@@ -417,36 +420,42 @@ nb = BernoulliNB()
     
     # %time y_pred_= nb.predict(X_test_matrix)
     # metrics.accuracy_score(y_test, y_pred_)
+    # print(classification_report(test_y, predictions))  
 
 #B) BernoulliNB 10 fold cross validation
     # cv10 = KFold(n_splits=10, shuffle=True, random_state=123).split(X_train_matrix, y_train)
     # print(cross_val_score(nb, X_train_matrix, y_train, cv=cv10, n_jobs=1))
 
-#C) BernoulliNB 10 fold cross validation
-# X = np.array(df_train['lemm_sent'])
-# y = np.array(df_train['review_type'])
+#C) pipeline 10 fold cross validation
 
-kf = KFold(n_splits=10, shuffle=True, random_state=123)
-scores = []
-confusion = np.array([[0,0], [0,0]])
+# kf = KFold(n_splits=10, shuffle=True, random_state=123)
+# scores = []
+# confusion = np.array([[0,0], [0,0]])
       
-for train_indices, test_indices in kf.split(final_train):
-    train_text = final_train.iloc[train_indices]['text']
-    train_y = final_train.iloc[train_indices]['label']
+# for train_indices, test_indices in kf.split(final_train):
+#     train_text = final_train.iloc[train_indices]['text']
+#     train_y = final_train.iloc[train_indices]['val']
 
-    test_text = final_train.iloc[test_indices]['text']
-    test_y = final_train.iloc[test_indices]['label']
+#     test_text = final_train.iloc[test_indices]['text']
+#     test_y = final_train.iloc[test_indices]['val']
       
-    pipeline.fit(train_text, train_y)
-    predictions = pipeline.predict(test_text)
+#     pipeline.fit(train_text, train_y)
+#     predictions = pipeline.predict(test_text)
 
-    confusion += confusion_matrix(test_y, predictions)
-    print(confusion)
-    score = f1_score(test_y, predictions, pos_label = 1)
-    scores.append(score)
+#     confusion += confusion_matrix(test_y, predictions)
+#     print(confusion)
+#     score = f1_score(test_y, predictions, pos_val = 1)
+#     scores.append(score)
 
-print('Confusion Matrix:')
-print( confusion)
-print('Score:',round(sum(scores)/len(scores),2))
-      
-      
+# print('Confusion Matrix:')
+# print( confusion)
+# print('Score:',round(sum(scores)/len(scores),2))
+# print('Classification Report:')     
+# print(classification_report(test_y, predictions))      
+
+
+#D) pipeline 10 fold cross validation
+
+cv = CountVectorizer()
+train_cv = cv.fit_transform(final_train.text)
+train_cv = pd.DataFrame(train_cv.toarray(), columns = cv.get_feature_names())
