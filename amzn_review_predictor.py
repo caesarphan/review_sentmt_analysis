@@ -154,32 +154,6 @@ test_df['url_replace'] = test_sent
 
 del [url_key,url_key_word]
 
-#replace digits
-def digit_replace(corpus):
-    
-    output = []
-    
-    for docs in corpus:       
-        
-        temp_list = []
-        for i,word in enumerate(docs.split(' ')):
-            temp_list.extend([word if word.isdigit() == False else '0'])
-            
-        output.append(' '.join(temp_list))                   
-    return output
-
-#Test function works
-    # aa = test_sent.copy()
-    # aa = digit_replace(aa)
-    # data_test[39993]
-    # aa[39993]
-
-train_sent = digit_replace(train_sent)
-test_sent = digit_replace(test_sent)
-
-train_df['digit_replace'] = digit_replace(train_sent)
-test_df['digit_replace'] = digit_replace(test_sent)
-
 #replace contractions
 def contrac_replace(x):
     output = []
@@ -242,6 +216,33 @@ train_df['no_punc'] = train_sent
 test_df['no_punc'] = test_sent
 
 del [punc]
+
+#replace digits
+def digit_replace(corpus):
+    
+    output = []
+    
+    for docs in corpus:       
+        
+        temp_list = []
+        for word in docs:
+            temp_list.extend([word if word.isdigit() == False else '0'])
+            
+        output.append(' '.join(temp_list))                   
+    return output
+
+#Test function works
+    # aa = test_sent.copy()
+    # aa = digit_replace(aa)
+    # data_test[39993]
+    # aa[39993]
+
+train_sent = digit_replace(train_sent)
+test_sent = digit_replace(test_sent)
+
+train_df['digit_replace'] = digit_replace(train_sent)
+test_df['digit_replace'] = digit_replace(test_sent)
+
 
 #identify and remove 'stopwords' (i.e. the, a)
 stopwords = stopwords.words('english')
@@ -333,12 +334,18 @@ df_test['sentences'] = df_test['lemmatized'].apply(lambda x: ' '.join(x))
 vect = CountVectorizer()
 vect.fit(df_train['sentences'])
 vect.get_feature_names()
+vect.vocabulary_
 
+#view first sample
+vect0 = vect.transform([df_train['sentences'][0]]).toarray()[0]
 
+print('Vectorized length: ')
+print(len(vect0))
+print()
 
-
-
-
+print('First review [0] num words: ')
+print(np.sum(vect0))
+print()
 
 
 
