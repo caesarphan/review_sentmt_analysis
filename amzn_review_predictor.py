@@ -34,13 +34,13 @@ from sklearn.svm import SVC
 
 # from nltk.stem.porter import PorterStemmer
 
-# #windows
-# data_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
-# data_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
+#windows
+data_train = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/train.ft.txt.bz2')
+data_test = bz2.BZ2File('C:/Users/caesa/Documents/projects/amzn_reviews/test.ft.txt.bz2')
 
-#macOS
-data_train = bz2.BZ2File('/Users/caesarphan/Documents/projects/amazon_reviews/train.ft.txt.bz2')
-data_test = bz2.BZ2File('/Users/caesarphan/Documents/projects/amazon_reviews/test.ft.txt.bz2')
+# #macOS
+# data_train = bz2.BZ2File('/Users/caesarphan/Documents/projects/amazon_reviews/train.ft.txt.bz2')
+# data_test = bz2.BZ2File('/Users/caesarphan/Documents/projects/amazon_reviews/test.ft.txt.bz2')
 
 data_train = [x.decode('utf-8') for x in data_train]
 data_test = [x.decode('utf-8') for x in data_test]
@@ -103,7 +103,7 @@ del [size_train, size_test, words_per_review,train_label, test_label,
 
 #compare words count by review type
 sns.set_theme(style="darkgrid")
-ax = sns.boxplot(x = 'good_review', y = 'num_words',
+ax = sns.boxplot(x = 'good_review', y = 'preclean_len',
             hue="good_review",data = train_df)
 
 #identify reviews with a URL
@@ -213,7 +213,7 @@ train_df['tokenized'] = train_sent
 test_df['tokenized'] = test_sent
 
 
-#WIP
+
 #remove punctuations
 punc = string.punctuation
 
@@ -298,6 +298,7 @@ del wnl
 
 #illustrate histogram of words
 train_df['postclean_len'] = train_df['lemmatized'].apply(lambda x: len(x))
+test_df['postclean_len'] = test_df['lemmatized'].apply(lambda x: len(x))
 
 #compare before and after cleaned                     
 ax = sns.displot(data = train_df, x = 'postclean_len', hue = 'good_review', kind = 'kde')
@@ -311,6 +312,51 @@ list_stats(train_df.loc[train_df['good_review']==1]['postclean_len'])
 
 list_stats(train_df.loc[train_df['good_review']==0]['postclean_len'])
 #bad reviews -->mean: 45.42, median 41.0, max words: 163, min words: 7
+
+
+#bag of words and rank them by review type
+
+aa_temp = train_df.loc[89997:,['good_review','lemmatized']].copy()
+aa_temp['sentences'] = aa_temp['lemmatized'].apply(lambda x: ' '.join(x))
+
+train_df['sentences'] = train_df['lemmatized'].apply(lambda x: ' '.join(x))
+train_df['sentences'] = train_df['lemmatized'].apply(lambda x: ' '.join(x))
+
+#new df with cleaned words and sentences
+df_train = train_df.loc[:,['good_review', 'postclean_len','lemmatized']]
+df_test = test_df.loc[:,['good_review', 'postclean_len','lemmatized']]
+
+#bag of words
+df_train['sentences'] = df_train['lemmatized'].apply(lambda x: ' '.join(x))
+df_test['sentences'] = df_test['lemmatized'].apply(lambda x: ' '.join(x))
+
+vect = CountVectorizer()
+vect.fit(df_train['sentences'])
+vect.get_feature_names()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
