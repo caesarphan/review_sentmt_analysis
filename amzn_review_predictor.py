@@ -52,11 +52,11 @@ data_test = [x.decode('utf-8') for x in data_test]
 
 #for efficiency, randomly sample 300k to train, 10k to test
 random.seed(123)
-# size_train = (len(data_train)/40)
-# size_test = (len(data_test)/40)
+size_train = (len(data_train)/40)
+size_test = (len(data_test)/40)
 
-size_train = (1000)
-size_test = (100)
+# size_train = (10000)
+# size_test = (1000)
 
 sample_train = random.sample(data_train, int(size_train))
 sample_test = random.sample(data_test, int(size_test))
@@ -268,7 +268,7 @@ stopwords = stopwords.words('english')
 train_df['rmv_stopwords'] = train_df['no_punc'].apply(lambda x: [word for word in x if word not in stopwords])
 test_df['rmv_stopwords'] = test_df['no_punc'].apply(lambda x: [word for word in x if word not in stopwords])
 
-del [stopwords, keep_words]
+del [stopwords]
 
 
 #identify each token's part of speech
@@ -364,77 +364,20 @@ final_test.columns = ['text', 'val', 'label']
 
 
 
-#Vectorize dataset
-
-# CountVectorizer data and labels top words
-cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
-
-cv.fit(final_train.text)
-
-neg_matrix = cv.transform(final_train[final_train.val == 0].text)
-neg_words = neg_matrix.sum(axis=0)
-neg_words_list = [(word, neg_matrix[0, i]) for word, i in cv.vocabulary_.items()]
-neg_word_freq = pd.DataFrame(list(sorted(neg_words_list, key = lambda x: x[1], reverse=True)),columns=['Term','Count'])
-neg_cv = neg_word_freq.head(10)
-neg_cv[:]['Count'] = neg_cv[:]["Count"].astype(int)
 
 
-positive_matrix = cv.transform(final_train[final_train.val == 1].text)
-positive_words = positive_matrix.sum(axis=0)
-positive_words_list = [(word, positive_matrix[0, i]) for word, i in cv.vocabulary_.items()]
-positive_word_freq = pd.DataFrame(list(sorted(positive_words_list, key = lambda x: x[1], reverse=True)),columns=['Term','Count'])
-positive_cv = positive_word_freq.head(10)
-positive_cv[:]['Count'] = positive_cv[:]["Count"].astype(int)
+#WIP
 
 
-ax = sns.barplot(x = 'Count', y = 'Term', data = neg_cv)
-ax.set_title('CountVec Negative')
-ax.set(xlabel='Frequency', ylabel = 'Word')
-plt.show()
-ax.clear() 
-
-ax = sns.barplot(x = 'Count', y = 'Term', data = positive_cv)
-ax.set_title('CountVec Positive')
-ax.set(xlabel='Frequency', ylabel = 'Word')
-plt.show()
-ax.clear() 
-# TF-IDF data and labels top words
-tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
-
-tfidf.fit(final_train.text)
-
-neg_matrix = tfidf.transform(final_train[final_train.val == 0].text)
-neg_words = neg_matrix.sum(axis=0)
-neg_words_list = [(word, neg_matrix[0, i]) for word, i in tfidf.vocabulary_.items()]
-neg_word_freq = pd.DataFrame(list(sorted(neg_words_list, key = lambda x: x[1], reverse=True)),columns=['Term','Count'])
-neg_tfidf = neg_word_freq.head(10)
-neg_tfidf[:]['Count'] = neg_tfidf[:]["Count"].astype(int)
-
-
-positive_matrix = tfidf.transform(final_train[final_train.val == 1].text)
-positive_words = positive_matrix.sum(axis=0)
-positive_words_list = [(word, positive_matrix[0, i]) for word, i in tfidf.vocabulary_.items()]
-positive_word_freq = pd.DataFrame(list(sorted(positive_words_list, key = lambda x: x[1], reverse=True)),columns=['Term','Count'])
-positive_tfidf = positive_word_freq.head(10)
-positive_tfidf[:]['Count'] = positive_tfidf[:]["Count"].astype(int)
-
-
-ax = sns.barplot(x = 'Count', y = 'Term', data = neg_tfidf)
-ax.set_title('Tfidf Negative')
-ax.set(xlabel='Importance', ylabel = 'Word')
-plt.show()
-ax.clear() 
-
-ax = sns.barplot(x = 'Count', y = 'Term', data = positive_tfidf)
-ax.set_title('Tfidf Positive')
-ax.set(xlabel='Importance', ylabel = 'Word')
-plt.show()
-ax.clear()
 
 
 
 
 #CountVectorizer
+cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
+
+
+
 #test train split
 X, y = final_train.text, final_train.label
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
@@ -458,26 +401,26 @@ print()
 print('Classification Report: ')
 print(classification_report(y_test, predict))
 
-        # Overall Accuracy Score:  0.8
+        # Overall Accuracy Score:  0.7996666666666666
         
         # Confusion Matrix: 
-        # [[78 15]
-        #  [25 82]]
+        # [[6785 2205]
+        #  [1401 7609]]
         
         # Classification Report: 
         #               precision    recall  f1-score   support
         
-        #          bad       0.76      0.84      0.80        93
-        #         good       0.85      0.77      0.80       107
+        #          bad       0.83      0.75      0.79      8990
+        #         good       0.78      0.84      0.81      9010
         
-        #     accuracy                           0.80       200
-        #    macro avg       0.80      0.80      0.80       200
-        # weighted avg       0.80      0.80      0.80       200
+        #     accuracy                           0.80     18000
+        #    macro avg       0.80      0.80      0.80     18000
+        # weighted avg       0.80      0.80      0.80     18000
 
 
 #A2)1 fold Logistic Regression
 
-lr = LogisticRegression()
+lr = LogisticRegression(max_iter = 1000)
 %time lr.fit(X_train_cv, y_train)
 
 %time predict= lr.predict(X_test_cv)
@@ -490,21 +433,21 @@ print()
 print('Classification Report: ')
 print(classification_report(y_test, predict))
 
-        # Overall Accuracy Score:  0.78
+        # Overall Accuracy Score:  0.7947222222222222
         
         # Confusion Matrix: 
-        # [[70 23]
-        #  [21 86]]
+        # [[7238 1752]
+        #  [1943 7067]]
         
         # Classification Report: 
         #               precision    recall  f1-score   support
         
-        #          bad       0.77      0.75      0.76        93
-        #         good       0.79      0.80      0.80       107
+        #          bad       0.79      0.81      0.80      8990
+        #         good       0.80      0.78      0.79      9010
         
-        #     accuracy                           0.78       200
-        #    macro avg       0.78      0.78      0.78       200
-        # weighted avg       0.78      0.78      0.78       200
+        #     accuracy                           0.79     18000
+        #    macro avg       0.79      0.79      0.79     18000
+        # weighted avg       0.79      0.79      0.79     18000
 
 
 #A3) BernoulliNB 10 fold cross validation
@@ -560,7 +503,6 @@ print(classification_report(y_test, predict))
 
 
 #A4) LogisticRegression 10 fold cross validation
-kf = KFold(n_splits=10, shuffle=True, random_state=123)
 
 scores = []
 confusion = np.array([[0,0], [0,0]])
@@ -618,13 +560,13 @@ print(classification_report(y_test, predict))
 
 
 #TFIDFVectorizer
-
+tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
 # Vectorize data and labels
 X_train_tfidf = tfidf.fit_transform(X_train)
 X_test_tfidf = tfidf.transform(X_test)
 
 #B1) fold BernoulliNB
-bnb = BernoulliNB()
+# bnb = BernoulliNB()
 %time bnb.fit(X_train_tfidf, y_train)
 
 %time predict= bnb.predict(X_test_tfidf)
@@ -638,24 +580,24 @@ print()
 print('Classification Report: ')
 print(classification_report(y_test, predict))        
 
-        # Overall Accuracy Score:  0.8
-        
-        # Confusion Matrix: 
-        # [[36 12]
-        #  [ 8 44]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #            0       0.82      0.75      0.78        48
-        #            1       0.79      0.85      0.81        52
-        
-        #     accuracy                           0.80       100
-        #    macro avg       0.80      0.80      0.80       100
-        # weighted avg       0.80      0.80      0.80       100
+            # Overall Accuracy Score:  0.8535555555555555
+            
+            # Confusion Matrix: 
+            # [[3794  733]
+            #  [ 585 3888]]
+            
+            # Classification Report: 
+            #               precision    recall  f1-score   support
+            
+            #            0       0.87      0.84      0.85      4527
+            #            1       0.84      0.87      0.86      4473
+            
+            #     accuracy                           0.85      9000
+            #    macro avg       0.85      0.85      0.85      9000
+            # weighted avg       0.85      0.85      0.85      9000
 
 #B2)1 fold LogisticRegression
-lr = LogisticRegression()
+lr = LogisticRegression(max_iter = 1000)
 %time lr.fit(X_train_tfidf, y_train)
 
 %time predict= lr.predict(X_test_tfidf)
@@ -669,25 +611,23 @@ print()
 print('Classification Report: ')
 print(classification_report(y_test, predict))     
        
-         # Overall Accuracy Score:  0.79
+        # Overall Accuracy Score:  0.8807222222222222
         
         # Confusion Matrix: 
-        # [[39  9]
-        #  [12 40]]
+        # [[7968 1022]
+        #  [1125 7885]]
         
         # Classification Report: 
         #               precision    recall  f1-score   support
         
-        #            0       0.76      0.81      0.79        48
-        #            1       0.82      0.77      0.79        52
+        #          bad       0.88      0.89      0.88      8990
+        #         good       0.89      0.88      0.88      9010
         
-        #     accuracy                           0.79       100
-        #    macro avg       0.79      0.79      0.79       100
-        # weighted avg       0.79      0.79      0.79       100
+        #     accuracy                           0.88     18000
+        #    macro avg       0.88      0.88      0.88     18000
+        # weighted avg       0.88      0.88      0.88     18000
 
 #B3) BernoulliNB 10 fold cross validation
-
-kf = KFold(n_splits=10, shuffle=True, random_state=123)
 
 scores = []
 confusion = np.array([[0,0], [0,0]])
@@ -721,42 +661,24 @@ print()
 print('Classification Report: ')
 print(classification_report(y_test, predict))
 
-        # Overall Score: 0.79
+        # Overall Score: 0.85
         
         # Confusion Matrix: 
-        # [[377 129]
-        #  [ 86 408]]
+        # [[37481  7736]
+        #  [ 5720 39063]]
         
         # Classification Report: 
         #               precision    recall  f1-score   support
         
-        #            0       0.82      0.75      0.78        48
-        #            1       0.79      0.85      0.81        52
+        #            0       0.87      0.84      0.85      4527
+        #            1       0.84      0.87      0.85      4473
         
-        #     accuracy                           0.80       100
-        #    macro avg       0.80      0.80      0.80       100
-        # weighted avg       0.80      0.80      0.80       100
-
-
-        # Confusion Matrix:
-        # [[377 129]
-        #  [ 86 408]]
-        # Score: 0.79
-        # Classification Report:
-        #               precision    recall  f1-score   support
-        
-        #            0       0.82      0.75      0.78        48
-        #            1       0.79      0.85      0.81        52
-        
-        #     accuracy                           0.80       100
-        #    macro avg       0.80      0.80      0.80       100
-        # weighted avg       0.80      0.80      0.80       100
-
+        #     accuracy                           0.85      9000
+        #    macro avg       0.85      0.85      0.85      9000
+        # weighted avg       0.85      0.85      0.85      9000
 
 
 #B4) LogisticRegression 10 fold cross validation
-
-kf = KFold(n_splits=10, shuffle=True, random_state=123)
 
 scores = []
 confusion = np.array([[0,0], [0,0]])
@@ -790,34 +712,277 @@ print()
 print('Classification Report: ')
 print(classification_report(y_test, predict))
 
-        # Overall Score: 0.8
+        # Overall Score: 0.88
         
         # Confusion Matrix: 
-        # [[421  85]
-        #  [110 384]]
+        # [[39959  5258]
+        #  [ 5127 39656]]
         
         # Classification Report: 
         #               precision    recall  f1-score   support
         
-        #            0       0.76      0.81      0.79        48
-        #            1       0.82      0.77      0.79        52
+        #            0       0.89      0.88      0.89      4527
+        #            1       0.88      0.89      0.88      4473
         
-        #     accuracy                           0.79       100
-        #    macro avg       0.79      0.79      0.79       100
-        # weighted avg       0.79      0.79      0.79       100
+        #     accuracy                           0.88      9000
+        #    macro avg       0.88      0.88      0.88      9000
+        # weighted avg       0.88      0.88      0.88      9000
+
+
+
+
+# #A3) BernoulliNB 10 fold cross validation
+# kf = KFold(n_splits=10, shuffle=True, random_state=123)
+
+# scores = []
+# confusion = np.array([[0,0], [0,0]])
+
+# for train_indices, test_indices in kf.split(final_train):
+#     X_train = final_train.iloc[train_indices]['text']
+#     y_train = final_train.iloc[train_indices]['val']
+    
+    
+#     X_test = final_train.iloc[test_indices]['text']
+#     y_test = final_train.iloc[test_indices]['val']
+     
+    
+#     X_train_cv = cv.fit_transform(X_train)
+#     X_test_cv = cv.transform(X_test)
+    
+#     bnb.fit(X_train_cv, y_train)
+#     predict = bnb.predict(X_test_cv)    
+
+
+#     confusion += confusion_matrix(y_test, predict)
+#     # print(confusion)
+#     score = f1_score(y_test, predict)
+#     scores.append(score)
+# print()
+# print('Overall Score:',round(sum(scores)/len(scores),2))
+# print()
+# print('Confusion Matrix: ')
+# print(confusion)
+# print()
+# print('Classification Report: ')
+# print(classification_report(y_test, predict))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Accuracy against testing dataset
+
+#CountVectorization
+X_train, y_train = final_train.text, final_train.label
+X_test, y_test = final_test.text, final_test.label
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
+
+#A1)1 fold BernoulliNB
+X_train_cv = cv.fit_transform(X_train)
+X_test_cv = cv.transform(X_test)
+
+bnb = BernoulliNB()
+%time bnb.fit(X_train_cv, y_train)
+
+%time predict= bnb.predict(X_test_cv)
+print()
+print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
+print()
+print('Confusion Matrix: ')
+print(confusion_matrix(y_test, predict))
+print()
+print('Classification Report: ')
+print(classification_report(y_test, predict))
+
+        # Overall Accuracy Score:  0.6483
+        
+        # Confusion Matrix: 
+        # [[1998 3001]
+        #  [ 516 4485]]
+        
+        # Classification Report: 
+        #               precision    recall  f1-score   support
+        
+        #          bad       0.79      0.40      0.53      4999
+        #         good       0.60      0.90      0.72      5001
+        
+        #     accuracy                           0.65     10000
+        #    macro avg       0.70      0.65      0.63     10000
+        # weighted avg       0.70      0.65      0.63     10000
+
+
+
+
+
+
+#Accuracy against testing dataset
+#TFIDF Vectorization
+X_train, y_train = final_train.text, final_train.label
+X_test, y_test = final_test.text, final_test.label
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
+
+#A1)1 fold BernoulliNB
+X_train_cv = cv.fit_transform(X_train)
+X_test_cv = cv.transform(X_test)
+
+bnb = BernoulliNB()
+%time bnb.fit(X_train_cv, y_train)
+
+%time predict= bnb.predict(X_test_cv)
+print()
+print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
+print()
+print('Confusion Matrix: ')
+print(confusion_matrix(y_test, predict))
+print()
+print('Classification Report: ')
+print(classification_report(y_test, predict))
+
+        # Overall Accuracy Score:  0.6483
+        
+        # Confusion Matrix: 
+        # [[1998 3001]
+        #  [ 516 4485]]
+        
+        # Classification Report: 
+        #               precision    recall  f1-score   support
+        
+        #          bad       0.79      0.40      0.53      4999
+        #         good       0.60      0.90      0.72      5001
+        
+        #     accuracy                           0.65     10000
+        #    macro avg       0.70      0.65      0.63     10000
+        # weighted avg       0.70      0.65      0.63     10000
+        
+        
+        
+
+
+# Identify most important phrases
+
+def word_importance(vectorizer,classifier,n=20):
+    # self._vectorizer = vectorizer
+    class_labels = classifier.classes_
+    feature_names =vectorizer.get_feature_names()
+
+    topn_class1 = sorted(zip(classifier.feature_count_[0], feature_names),reverse=True)[:n]
+    topn_class2 = sorted(zip(classifier.feature_count_[1], feature_names),reverse=True)[:n]
+
+    class1_frequency_dict = {}
+    class2_frequency_dict = {}
+    
+    for coef, feat in topn_class1:
+        class1_frequency_dict.update( {feat : coef} )
+
+    for coef, feat in topn_class2:
+        class2_frequency_dict.update( {feat : coef} )
+
+    return (class1_frequency_dict, class2_frequency_dict)
+
+
+
+#Feature Importance
+cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (3,4))
+
+# Predictive Algorithms
+X_train_cv = cv.fit_transform(X_train)
+X_test_cv = cv.transform(X_test)
+
+bnb = BernoulliNB()
+bnb.fit(X_train_cv, y_train)
+predict= bnb.predict(X_test_cv)
+#CountVectorizer
+neg_frequency_dict, pos_frequency_dict = word_importance(cv, bnb)
+
+neg_feature_freq = pd.DataFrame(neg_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+pos_feature_freq = pd.DataFrame(pos_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+
+neg_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Negative Features(words)")
+pos_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Positive Features(words)")
+
+
+
+
+
+
+#TFIDFVectorizer
+tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (3,4))
+X_train_tfidf = tfidf.fit_transform(X_train)
+X_test_tfidf = tfidf.transform(X_test)
+
+bnb.fit(X_train_tfidf, y_train)
+
+predict= bnb.predict(X_test_tfidf)
+#Tfidf
+neg_frequency_dict, pos_frequency_dict = word_importance(tfidf, bnb)
+neg_feature_freq = pd.DataFrame(neg_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+pos_feature_freq = pd.DataFrame(pos_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+
+neg_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Negative Features(words)")
+pos_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Positive Features(words)")
+
+
+
+ax = sns.barplot(x = 'Count', y = 'Term', data = neg_tfidf)
+ax.set_title('CountVec Negative')
+ax.set(xlabel='Frequency', ylabel = 'Word')
+plt.show()
+ax.clear() 
+
+# ax = sns.barplot(x = 'Count', y = 'Term', data = positive_tfidf)
+# ax.set_title('CountVec Positive')
+# ax.set(xlabel='Frequency', ylabel = 'Word')
+# plt.show()
+# ax.clear() 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 # roadap:
 #Still need to do grid search, 
-# update y-pred / test (in kfold cv)
 # update visualizations (xlabel, y label)
 # display top words based on review type (cv vs tf-idf)
     # How can I display most relevant words and not just the most frequent?
 #update url pattern
 #update punctuation removal
-
+#update word importance function
 
 #how to update so that 'count' is as integars rather than float
     # ax = sns.barplot(x = 'Count', y = 'Term', data = neg_df)
+    
+    
+    
+    
+    
+    
