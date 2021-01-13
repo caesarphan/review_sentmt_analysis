@@ -808,4 +808,10 @@ print(classification_report(test_y, predict))
 
 #D) pipeline 10 fold cross validation
 
-#Still need to do grid search, update y-pred / test (in kfold cv)
+# roadap:
+#Still need to do grid search, 
+# update y-pred / test (in kfold cv)
+# update visualizations (xlabel, y label)
+# display top words based on review type (cv vs tf-idf)
+#update url pattern
+#update punctuation removal
