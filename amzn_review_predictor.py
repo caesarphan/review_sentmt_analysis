@@ -754,50 +754,35 @@ def word_importance(vectorizer,classifier,n=20):
 
 
 
-#BNB Words Displayed TFIDFVectorizer
-# tfidf_bnb_pipe = Pipeline([
-#     ('tfidf', TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))),
-#     ('bnb', BernoulliNB(alpha = 1.0))
-#     ])
+#Display top phrases based on TFIDF
+tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,4))
 
-tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (3,4))
+good_train_rev = final_train.loc[final_train.val == 1].text
 
-bnb = BernoulliNB(alpha = 1.0)
-X_train_tfidf = tfidf.fit_transform(X_train, y_train)
-X_test_tfidf = tfidf.transform(X_test)
+tfidf.fit_transform(good_train_rev)
+list_good = dict(zip(tfidf.get_feature_names(), tfidf.idf_))
+list_good = pd.DataFrame.from_dict(list_good, orient='index')
+list_good.reset_index(inplace = True)
+list_good = list_good.rename(columns = {'index': 'phrases', 0:'tfidf_score'})
+list_good = list_good.sort_values(by = ['tfidf_score'], ascending = False)
 
-bnb.fit(X_train_tfidf, y_train)
-
-predict= bnb.predict(X_test_tfidf)
-#Tfidf
-neg_frequency_dict, pos_frequency_dict = word_importance(tfidf, bnb)
-neg_feature_freq = pd.DataFrame(neg_frequency_dict.items(), columns = ["feature_word", "frequency"])  
-pos_feature_freq = pd.DataFrame(pos_frequency_dict.items(), columns = ["feature_word", "frequency"])  
-
-# neg_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Negative Features(words)")
-# pos_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Positive Features(words)")
-
-
-
-ax = sns.barplot(x = 'frequency', y = 'feature_word', data = neg_feature_freq)
-ax.set_title('TFIDF Negative')
+ax = sns.barplot(x = 'tfidf_score', y = 'phrases', data = list_good.head(15))
+ax.set_title('TFIDF Positive phrases')
 ax.set(xlabel='Frequency', ylabel = 'Word')
 plt.show()
 ax.clear() 
 
-# ax = sns.barplot(x = 'Count', y = 'Term', data = positive_tfidf)
-# ax.set_title('CountVec Positive')
-# ax.set(xlabel='Frequency', ylabel = 'Word')
-# plt.show()
-# ax.clear() 
+bad_train_rev = final_train.loc[final_train.val == 0].text
+tfidf.fit_transform(bad_train_rev)
+list_bad = dict(zip(tfidf.get_feature_names(), tfidf.idf_))
+list_bad = pd.DataFrame.from_dict(list_bad, orient='index')
+list_bad.reset_index(inplace = True)
+list_bad = list_bad.rename(columns = {'index': 'phrases', 0:'tfidf_score'})
+list_bad = list_bad.sort_values(by = ['tfidf_score'], ascending = False)
 
-
-#Logistic Regression Words Displayed TFIDFVectorizer
-tfidf_lr_pipe = Pipeline([
-    ('tfidf', TfidfVectorizer(min_df = 0.00, max_df=1.00, use_idf= True,
-                              max_features=10000, ngram_range = (1,2))),
-    ('lr', LogisticRegression(max_iter = 20000, random_state=rand_seed,
-                              C = 0.5, penalty = 'l2',))
-    ])
-
+ax = sns.barplot(x = 'tfidf_score', y = 'phrases', data = list_bad.head(15))
+ax.set_title('TFIDF Positive phrases')
+ax.set(xlabel='Frequency', ylabel = 'Word')
+plt.show()
+ax.clear()
 
