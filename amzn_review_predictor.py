@@ -26,6 +26,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords, wordnet
 # nltk.download('stopwords')
 # nltk.download('punkt')
+from sklearn.pipeline import Pipeline
 from string import punctuation
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.pipeline import Pipeline
@@ -368,7 +369,54 @@ final_test.columns = ['text', 'val', 'label']
 
 #WIP
 
+#test train split
+X, y = final_train.text, final_train.label
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
 
+
+#TFIDF pipeline
+tfidf_bnb_pipe = Pipeline([
+    ('tfidf', TfidfVectorizer()),
+    ('bnb', BernoulliNB())
+    ])
+
+tfidf_lr_pipe = Pipeline([
+    ('tfidf', TfidfVectorizer()),
+    ('lr', LogisticRegression(max_iter = 10000))
+    ])
+
+#CountVectorizer pipeline
+cv_bnb_pipe = Pipeline([
+    ('cv', CountVectorizer()),
+    ('bnb', BernoulliNB())
+    ])
+
+cv_lr_pipe = Pipeline([
+    ('cv', CountVectorizer()),
+    ('lr', LogisticRegression(max_iter = 10000))
+    ])
+
+#Parameters
+vect_params= {
+    "vect__mind_df":[0.05, 0.1, 0.15],
+    "vect__max_df":[0.8, 0.85],
+    'vect__ngram_range':((1,1), (1,2), (1,3)),
+    "vect__max_featires":[5000,10000,20000],
+    }
+
+bnb_params = {"bnb__alpha" : (.2, .4, .8, .9, 1.0)}
+lr_params = {
+    "lr__C": (0.25, 0.5, 1.0),
+    "lr__penality": ("l1","l2"),
+    "lr__n_jobs": -1
+    }
+
+
+tfidf_bnb_p
+ipe.fit(X_train, y_train)
+tfidf_lr_pipe.fit(X_train, y_train)
+cv_bnb_pipe.fit(X_train, y_train)
+cv_lr_pipe.fit(X_train, y_train)
 
 
 
@@ -376,11 +424,6 @@ final_test.columns = ['text', 'val', 'label']
 #CountVectorizer
 cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
 
-
-
-#test train split
-X, y = final_train.text, final_train.label
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
 
 # Predictive Algorithms
 X_train_cv = cv.fit_transform(X_train)
@@ -789,6 +832,11 @@ print(classification_report(y_test, predict))
 X_train, y_train = final_train.text, final_train.label
 X_test, y_test = final_test.text, final_test.label
 # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
+
+
+
+
+
 
 #A1)1 fold BernoulliNB
 X_train_cv = cv.fit_transform(X_train)
