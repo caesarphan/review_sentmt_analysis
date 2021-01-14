@@ -74,7 +74,7 @@ test_sent = [x.split(' ', 1)[1][:-1].lower() for x in sample_test]
 words_per_review = list(map(lambda x: len(x.split()), train_sent))
 
 sns.displot(words_per_review)
-plt.xlabel('Word Length')
+plt.xlabel('Words per review')
 plt.ylabel('Number of Reviews')
 plt.title('Word Frequency')
 plt.show()
@@ -367,52 +367,12 @@ final_test.columns = ['text', 'val', 'label']
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#WIP
-
 #test train split
 X, y = final_train.text, final_train.label
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=rand_seed)
 
 
-#Pipeline Setup
-# cv_bnb_pipe = Pipeline([
-#     ('cv', cvVectorizer()),
-#     ('bnb', BernoulliNB())
-#     ])
-
-# cv_lr_pipe = Pipeline([
-#     ('cv', cvVectorizer()),
-#     ('lr', LogisticRegression(max_iter = 10000))
-#     ])
-
-
+#pipeline setup
 tfidf_bnb_pipe = Pipeline([
     ('tfidf', TfidfVectorizer()),
     ('bnb', BernoulliNB())
@@ -450,7 +410,7 @@ lr_tfidf_params= {
 
 
 
-#Count Vectorizer Grid Search
+#TFIDF Vectorizer Grid Search
 gsearch_tfidf_bnb = GridSearchCV(tfidf_bnb_pipe, param_grid=bnb_tfidf_params,
                                  cv = 2, verbose = 1, n_jobs = -1)
 gsearch_tfidf_lr = GridSearchCV(tfidf_lr_pipe, param_grid=lr_tfidf_params,
@@ -470,25 +430,6 @@ print("GridSearch Best Params: {}".format(gsearch_tfidf_lr.best_params_))
 print('Overall Accuracy: {}'.format(gsearch_tfidf_lr.best_score_))
 # GridSearch Best Params: {'lr__C': 0.5, 'lr__penalty': 'l2', 'tfidf__max_features': 5000, 'tfidf__ngram_range': (1, 1), 'tfidf__use_idf': True}
 # Overall Accuracy: 0.6826041666666667
-
-
-
-
-
-
-
-
-
-
-#save your model or results
-joblib.dump(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
-joblib.dump(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
-
-#load your model for further usage
-joblib.load(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
-joblib.load(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
-
-
 
 
 
@@ -535,7 +476,8 @@ print(classification_report(y_test, predict))
 tfidf_lr_pipe = Pipeline([
     ('tfidf', TfidfVectorizer(min_df = 0.00, max_df=1.00, use_idf= True,
                               max_features=10000, ngram_range = (1,2))),
-    ('lr', LogisticRegression(C = 0.5, penalty = 'l2'))
+    ('lr', LogisticRegression(max_iter = 20000, random_state=rand_seed,
+                              C = 0.5, penalty = 'l2',))
     ])
 # GridSearch Best Params: {'lr__C': 0.5, 'lr__penalty': 'l2', 'tfidf__max_features': 5000, 'tfidf__ngram_range': (1, 1), 'tfidf__use_idf': True}
 
@@ -632,7 +574,8 @@ confusion = np.array([[0,0], [0,0]])
 tfidf_lr_pipe = Pipeline([
     ('tfidf', TfidfVectorizer(min_df = 0.00, max_df=1.00, use_idf= True,
                               max_features=10000, ngram_range = (1,2))),
-    ('lr', LogisticRegression(C = 0.5, penalty = 'l2'))
+    ('lr', LogisticRegression(max_iter = 20000, random_state=rand_seed,
+                              C = 0.5, penalty = 'l2',))
     ])
 
 for train_indices, test_indices in kf.split(final_train):
@@ -681,13 +624,20 @@ print(classification_report(y_test, predict))
 
 
 
-
+#WIP
 
 #------------------------------Accuracy against testing dataset ----------------------------------------------------
 
 final_X_train, final_y_train = final_train.text, final_train.label
 final_X_test, final_y_test = final_test.text, final_test.label
 
+#save your model or results
+joblib.dump(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
+joblib.dump(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
+
+#load your model for further usage
+joblib.load(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
+joblib.load(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
 
 
 
@@ -723,7 +673,7 @@ print(classification_report(final_y_test, predict))
 
 
 
-#Logistic Regression TFIDF Vectorization
+#Logistic Regression TFIDF Vectorizations
 
 %time tfidf_lr_pipe.fit(final_X_train, final_y_train)
 %time predict = tfidf_lr_pipe.predict(final_X_test)
@@ -804,13 +754,14 @@ def word_importance(vectorizer,classifier,n=20):
 
 
 
-#TFIDFVectorizer
+#BNB Words Displayed TFIDFVectorizer
 # tfidf_bnb_pipe = Pipeline([
 #     ('tfidf', TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))),
 #     ('bnb', BernoulliNB(alpha = 1.0))
 #     ])
 
-tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
+tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (3,4))
+
 bnb = BernoulliNB(alpha = 1.0)
 X_train_tfidf = tfidf.fit_transform(X_train, y_train)
 X_test_tfidf = tfidf.transform(X_test)
@@ -841,217 +792,12 @@ ax.clear()
 # ax.clear() 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# roadap:
-#Still need to do grid search, 
-# update visualizations (xlabel, y label)
-# display top words based on review type (cv vs tf-idf)
-    # How can I display most relevant words and not just the most frequent?
-#update url pattern
-#update punctuation removal
-#update word importance function
-
-#how to update so that 'count' is as integars rather than float
-    # ax = sns.barplot(x = 'Count', y = 'Term', data = neg_df)
-    
-    
-    
-    
-    
-    #CountVectorizer
-# cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
-
-
-# Predictive Algorithms
-X_train_cv = cv.fit_transform(X_train)
-X_test_cv = cv.transform(X_test)
-
-
-#A1)1 fold BernoulliNB
-bnb = BernoulliNB()
-%time bnb.fit(X_train_cv, y_train)
-
-%time predict= bnb.predict(X_test_cv)
-print()
-print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
-print()
-print('Confusion Matrix: ')
-print(confusion_matrix(y_test, predict))
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Accuracy Score:  0.7996666666666666
-        
-        # Confusion Matrix: 
-        # [[6785 2205]
-        #  [1401 7609]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #          bad       0.83      0.75      0.79      8990
-        #         good       0.78      0.84      0.81      9010
-        
-        #     accuracy                           0.80     18000
-        #    macro avg       0.80      0.80      0.80     18000
-        # weighted avg       0.80      0.80      0.80     18000
-
-
-#A2)1 fold Logistic Regression
-
-lr = LogisticRegression(max_iter = 1000)
-%time lr.fit(X_train_cv, y_train)
-
-%time predict= lr.predict(X_test_cv)
-print()
-print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
-print()
-print('Confusion Matrix: ')
-print(confusion_matrix(y_test, predict))
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Accuracy Score:  0.7947222222222222
-        
-        # Confusion Matrix: 
-        # [[7238 1752]
-        #  [1943 7067]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #          bad       0.79      0.81      0.80      8990
-        #         good       0.80      0.78      0.79      9010
-        
-        #     accuracy                           0.79     18000
-        #    macro avg       0.79      0.79      0.79     18000
-        # weighted avg       0.79      0.79      0.79     18000
-
-
-#A3) BernoulliNB 10 fold cross validation
-kf = KFold(n_splits=10, shuffle=True, random_state=rand_seed)
-
-scores = []
-confusion = np.array([[0,0], [0,0]])
-
-for train_indices, test_indices in kf.split(final_train):
-    X_train = final_train.iloc[train_indices]['text']
-    y_train = final_train.iloc[train_indices]['val']
-    
-    
-    X_test = final_train.iloc[test_indices]['text']
-    y_test = final_train.iloc[test_indices]['val']
-     
-    
-    X_train_cv = cv.fit_transform(X_train)
-    X_test_cv = cv.transform(X_test)
-    
-    bnb.fit(X_train_cv, y_train)
-    predict = bnb.predict(X_test_cv)    
-
-
-    confusion += confusion_matrix(y_test, predict)
-    # print(confusion)
-    score = f1_score(y_test, predict)
-    scores.append(score)
-print()
-print('Overall Score:',round(sum(scores)/len(scores),2))
-print()
-print('Confusion Matrix: ')
-print(confusion)
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Score: 0.8
-        
-        # Confusion Matrix: 
-        # [[335 171]
-        #  [ 52 442]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #            0       0.93      0.58      0.72        48
-        #            1       0.71      0.96      0.82        52
-        
-        #     accuracy                           0.78       100
-        #    macro avg       0.82      0.77      0.77       100
-        # weighted avg       0.82      0.78      0.77       100
-
-
-#A4) LogisticRegression 10 fold cross validation
-
-scores = []
-confusion = np.array([[0,0], [0,0]])
-
-
-for train_indices, test_indices in kf.split(final_train):
-    X_train = final_train.iloc[train_indices]['text']
-    y_train = final_train.iloc[train_indices]['val']
-    
-    
-    X_test = final_train.iloc[test_indices]['text']
-    y_test = final_train.iloc[test_indices]['val']
-     
-    
-    X_train_cv = cv.fit_transform(X_train)
-    X_test_cv = cv.transform(X_test)
-    
-    lr.fit(X_train_cv, y_train)
-    predict = lr.predict(X_test_cv)    
-
-
-    confusion += confusion_matrix(y_test, predict)
-    # print(confusion)
-    score = f1_score(y_test, predict)
-    scores.append(score)
-    
-print()
-print('Overall Score:',round(sum(scores)/len(scores),2))
-print()
-print('Confusion Matrix: ')
-print(confusion)
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-        
-        # Overall Score: 0.8
-        
-        # Confusion Matrix: 
-        # [[398 108]
-        #  [ 96 398]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #            0       0.77      0.71      0.74        48
-        #            1       0.75      0.81      0.78        52
-        
-        #     accuracy                           0.76       100
-        #    macro avg       0.76      0.76      0.76       100
-        # weighted avg       0.76      0.76      0.76       100
-
+#Logistic Regression Words Displayed TFIDFVectorizer
+tfidf_lr_pipe = Pipeline([
+    ('tfidf', TfidfVectorizer(min_df = 0.00, max_df=1.00, use_idf= True,
+                              max_features=10000, ngram_range = (1,2))),
+    ('lr', LogisticRegression(max_iter = 20000, random_state=rand_seed,
+                              C = 0.5, penalty = 'l2',))
+    ])
 
 
