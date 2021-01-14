@@ -365,6 +365,10 @@ final_train.columns = ['text', 'val', 'label']
 final_test.columns = ['text', 'val', 'label']
 
 
+#------------------------------Hyper-Parameter Tuning ----------------------------------------------------
+
+
+
 #test train split
 X, y = final_train.text, final_train.label
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=rand_seed)
@@ -430,6 +434,7 @@ print('Overall Accuracy: {}'.format(gsearch_tfidf_lr.best_score_))
 # Overall Accuracy: 0.6826041666666667
 
 
+#------------------------------ Model Training ----------------------------------------------------
 
 
 #TFIDFVectorizer BNB Training
@@ -465,7 +470,6 @@ print(classification_report(y_test, predict))
         #     accuracy                           0.82      1200
         #    macro avg       0.82      0.82      0.82      1200
         # weighted avg       0.82      0.82      0.82      1200
-
 
 
 
@@ -620,10 +624,8 @@ print(classification_report(y_test, predict))
 
 
 
-
-
-
 #------------------------------Accuracy against testing dataset ----------------------------------------------------
+
 
 final_X_train, final_y_train = final_train.text, final_train.label
 final_X_test, final_y_test = final_test.text, final_test.label
@@ -635,9 +637,6 @@ joblib.dump(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
 #load your model for further usage
 joblib.load(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
 joblib.load(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
-
-
-
 
 
 #Bernoulli TFIDF Vectorization
@@ -700,10 +699,6 @@ print(classification_report(final_y_test, predict))
         # weighted avg       0.85      0.85      0.85      1333
 
 
-       
-        
-
-
 # Identify most important phrases
 def word_importance(vectorizer,classifier,n=20):
     # self._vectorizer = vectorizer
@@ -725,29 +720,23 @@ def word_importance(vectorizer,classifier,n=20):
     return (class1_frequency_dict, class2_frequency_dict)
 
 
+
+
 #display most frequent terms by review
 tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (2,4))
 bnb = BernoulliNB(alpha = 1.0)
 
+# grouped_reviews(final_train)
 
-#WIP
 good_train_rev, good_train_val = final_train.loc[final_train.val == 1].text, final_train.loc[final_train.val == 1].val
 doc = tfidf.fit_transform(good_train_rev)
 
 bnb.fit(doc, good_train_val)
 # predict= bnb.predict(X_test_tfidf)
 #Tfidf
-positive_dict, negative_dict = word_importance(tfidf, bnb)
-
-def grouped_reviews(data):
-
-    review_group = ['Positive','Negative']
-    review_val = [1,0]
-   
-    for idx in range(len(review_val)):
-
-positive_df = pd.DataFrame(positive_dict.items(), columns = ["feature_word", "frequency"])  
-negative_df = pd.DataFrame(negative_dict.items(), columns = ["feature_word", "frequency"])  
+positive_frequency_dict, pos_frequency_dict = word_importance(tfidf, bnb)
+positive_feature_freq = pd.DataFrame(positive_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+pos_feature_freq = pd.DataFrame(pos_frequency_dict.items(), columns = ["feature_word", "frequency"])  
 
 ax = sns.barplot(x = 'frequency', y = 'feature_word', data = positive_feature_freq)
 ax.set_title('Frequent Positive Terms')
@@ -776,9 +765,9 @@ ax.clear()
 #Display top phrases based on TFIDF
 tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (2,4))
 
-good_train_rev = final_train.loc[final_train.val == 1].text
+good_train_rev, good_train_val = final_train.loc[final_train.val == 1].text, final_train.loc[final_train.val == 1].val
 
-tfidf.fit_transform(good_train_rev)
+tfidf.fit(good_train_rev)
 list_good = dict(zip(tfidf.get_feature_names(), tfidf.idf_))
 list_good = pd.DataFrame.from_dict(list_good, orient='index')
 list_good.reset_index(inplace = True)
@@ -792,7 +781,7 @@ plt.show()
 ax.clear() 
 
 bad_train_rev = final_train.loc[final_train.val == 0].text
-tfidf.fit_transform(bad_train_rev)
+tfidf.fit(bad_train_rev)
 list_bad = dict(zip(tfidf.get_feature_names(), tfidf.idf_))
 list_bad = pd.DataFrame.from_dict(list_bad, orient='index')
 list_bad.reset_index(inplace = True)
