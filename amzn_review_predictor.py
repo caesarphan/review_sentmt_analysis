@@ -28,6 +28,8 @@ from nltk.corpus import stopwords, wordnet
 # nltk.download('punkt')
 from sklearn.pipeline import Pipeline
 from string import punctuation
+
+import joblib
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.pipeline import Pipeline
@@ -53,7 +55,7 @@ data_train = [x.decode('utf-8') for x in data_train]
 data_test = [x.decode('utf-8') for x in data_test]
 
 #for efficiency, randomly sample 300k to train, 10k to test
-random.seed(123)
+rand_seed = random.seed(123)
 size_train = (len(data_train)/40)
 size_test = (len(data_test)/40)
 
@@ -418,7 +420,7 @@ tfidf_bnb_pipe = Pipeline([
 
 tfidf_lr_pipe = Pipeline([
     ('tfidf', TfidfVectorizer()),
-    ('lr', LogisticRegression(max_iter = 10000))
+    ('lr', LogisticRegression(max_iter = 10000, random_state=rand_seed))
     ])
 
 tfidf_bnb_pipe.fit(X_train, y_train)
@@ -428,23 +430,25 @@ tfidf_lr_pipe.fit(X_train,y_train)
 
 #Parameters
 bnb_tfidf_params= {
-    "tfidf__mind_df":[0.05, 0.1, 0.15],
-    "tfidf__max_df":[0.8, 0.85],
+    # "tfidf__min_df":[0.25,0.5],
+    # "tfidf__max_df": (0.25, 0.5, 0.75),
     'tfidf__ngram_range':((1,1), (1,2), (1,3)),
-    "tfidf__max_featires":[5000, 10000, 20000],
+    "tfidf__max_features":(5000, 10000, 15000),
+    'tfidf__use_idf': (True, False),
     "bnb__alpha" : (.2, .4, .8, .9, 1.0)
     }
 
 
 lr_tfidf_params= {
-    "tfidf__mind_df":[0.05, 0.1, 0.15],
-    "tfidf__max_df":[0.8, 0.85],
+    # "tfidf__min_df":[0.25,0.5],
+    # "tfidf__max_df": (0.25, 0.5, 0.75),
     'tfidf__ngram_range':((1,1), (1,2), (1,3)),
-    "tfidf__max_featires":[5000, 10000, 20000],
-    "lr__C": (0.25, 0.5, 1.0),
-    "lr__penality": ("l1","l2"),
-    "lr__n_jobs": -1
+    "tfidf__max_features":(5000, 10000, 15000),
+    'tfidf__use_idf': (True, False),
+    'lr__C': (0.01, 0.1, 1, 10),
+    'lr__penalty': ['l1', 'l2']
     }
+
 
 
 #Count Vectorizer Grid Search
@@ -452,6 +456,20 @@ gsearch_tfidf_bnb = GridSearchCV(tfidf_bnb_pipe, param_grid=bnb_tfidf_params,
                                  cv = 5, verbose = 1, n_jobs = -1)
 gesarch_tfidf_lr = GridSearchCV(tfidf_lr_pipe, param_grid=lr_tfidf_params,
                                  cv = 5, verbose = 1, n_jobs = -1)
+
+#fit training data into grid search for best params
+gsearch_tfidf_bnb.fit(X_train,y_train)
+gesarch_tfidf_lr.fit(X_train,y_train)
+
+gsearch_tfidf_bnb.best_params_
+
+#save your model or results
+joblib.dump(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
+joblib.dump(gsearch_tfidf_lr, 'amzn_tfidf_lr.pkl')
+
+#load your model for further usage
+joblib.load(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
+joblib.load(gsearch_tfidf_lr, 'amzn_tfidf_lr.pkl')
 
 
 
