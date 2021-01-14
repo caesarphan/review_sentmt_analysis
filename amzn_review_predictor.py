@@ -28,6 +28,7 @@ from nltk.corpus import stopwords, wordnet
 # nltk.download('punkt')
 from sklearn.pipeline import Pipeline
 from string import punctuation
+from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -367,6 +368,30 @@ final_test.columns = ['text', 'val', 'label']
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #WIP
 
 #test train split
@@ -374,7 +399,18 @@ X, y = final_train.text, final_train.label
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
 
 
-#TFIDF pipeline
+#Pipeline Setup
+# cv_bnb_pipe = Pipeline([
+#     ('cv', cvVectorizer()),
+#     ('bnb', BernoulliNB())
+#     ])
+
+# cv_lr_pipe = Pipeline([
+#     ('cv', cvVectorizer()),
+#     ('lr', LogisticRegression(max_iter = 10000))
+#     ])
+
+
 tfidf_bnb_pipe = Pipeline([
     ('tfidf', TfidfVectorizer()),
     ('bnb', BernoulliNB())
@@ -385,44 +421,42 @@ tfidf_lr_pipe = Pipeline([
     ('lr', LogisticRegression(max_iter = 10000))
     ])
 
-#CountVectorizer pipeline
-cv_bnb_pipe = Pipeline([
-    ('cv', CountVectorizer()),
-    ('bnb', BernoulliNB())
-    ])
+tfidf_bnb_pipe.fit(X_train, y_train)
+tfidf_lr_pipe.fit(X_train,y_train)
 
-cv_lr_pipe = Pipeline([
-    ('cv', CountVectorizer()),
-    ('lr', LogisticRegression(max_iter = 10000))
-    ])
+
 
 #Parameters
-vect_params= {
-    "vect__mind_df":[0.05, 0.1, 0.15],
-    "vect__max_df":[0.8, 0.85],
-    'vect__ngram_range':((1,1), (1,2), (1,3)),
-    "vect__max_featires":[5000,10000,20000],
+bnb_tfidf_params= {
+    "tfidf__mind_df":[0.05, 0.1, 0.15],
+    "tfidf__max_df":[0.8, 0.85],
+    'tfidf__ngram_range':((1,1), (1,2), (1,3)),
+    "tfidf__max_featires":[5000, 10000, 20000],
+    "bnb__alpha" : (.2, .4, .8, .9, 1.0)
     }
 
-bnb_params = {"bnb__alpha" : (.2, .4, .8, .9, 1.0)}
-lr_params = {
+
+lr_tfidf_params= {
+    "tfidf__mind_df":[0.05, 0.1, 0.15],
+    "tfidf__max_df":[0.8, 0.85],
+    'tfidf__ngram_range':((1,1), (1,2), (1,3)),
+    "tfidf__max_featires":[5000, 10000, 20000],
     "lr__C": (0.25, 0.5, 1.0),
     "lr__penality": ("l1","l2"),
     "lr__n_jobs": -1
     }
 
 
-tfidf_bnb_p
-ipe.fit(X_train, y_train)
-tfidf_lr_pipe.fit(X_train, y_train)
-cv_bnb_pipe.fit(X_train, y_train)
-cv_lr_pipe.fit(X_train, y_train)
-
+#Count Vectorizer Grid Search
+gsearch_tfidf_bnb = GridSearchCV(tfidf_bnb_pipe, param_grid=bnb_tfidf_params,
+                                 cv = 5, verbose = 1, n_jobs = -1)
+gesarch_tfidf_lr = GridSearchCV(tfidf_lr_pipe, param_grid=lr_tfidf_params,
+                                 cv = 5, verbose = 1, n_jobs = -1)
 
 
 
 #CountVectorizer
-cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
+# cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
 
 
 # Predictive Algorithms
