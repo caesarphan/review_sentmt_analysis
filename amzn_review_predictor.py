@@ -337,8 +337,8 @@ list_stats(train_df.loc[train_df['good_review']==0]['postclean_len'])
 
 #bag of words and rank them by review type
 
-aa_temp = train_df.loc[89997:,['good_review','lemmatized']].copy()
-aa_temp['sentences'] = aa_temp['lemmatized'].apply(lambda x: ' '.join(x))
+# aa_temp = train_df.loc[89997:,['good_review','lemmatized']].copy()
+# aa_temp['sentences'] = aa_temp['lemmatized'].apply(lambda x: ' '.join(x))
 
 train_df['sentences'] = train_df['lemmatized'].apply(lambda x: ' '.join(x))
 train_df['sentences'] = train_df['lemmatized'].apply(lambda x: ' '.join(x))
@@ -357,14 +357,12 @@ df_test['review_type'] = df_test.good_review.map({0:'bad', 1:'good'})
 
 df_train.review_type.value_counts()
 
-#train_test_split data - simulate real world
-
+#create a final dataframe encompassing only relevant columns
 final_train = df_train[:][['lemm_sent','good_review', 'review_type']]
 final_test = df_test[:][['lemm_sent','good_review', 'review_type']]
 
 final_train.columns = ['text', 'val', 'label']
 final_test.columns = ['text', 'val', 'label']
-
 
 
 #test train split
@@ -624,7 +622,6 @@ print(classification_report(y_test, predict))
 
 
 
-#WIP
 
 #------------------------------Accuracy against testing dataset ----------------------------------------------------
 
@@ -708,7 +705,6 @@ print(classification_report(final_y_test, predict))
 
 
 # Identify most important phrases
-
 def word_importance(vectorizer,classifier,n=20):
     # self._vectorizer = vectorizer
     class_labels = classifier.classes_
@@ -729,33 +725,56 @@ def word_importance(vectorizer,classifier,n=20):
     return (class1_frequency_dict, class2_frequency_dict)
 
 
-
-# #Feature Importance
-# cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (3,4))
-
-# # Predictive Algorithms
-# X_train_cv = cv.fit_transform(X_train)
-# X_test_cv = cv.transform(X_test)
-
-# bnb = BernoulliNB()
-# bnb.fit(X_train_cv, y_train)
-# predict= bnb.predict(X_test_cv)
-# #CountVectorizer
-# neg_frequency_dict, pos_frequency_dict = word_importance(cv, bnb)
-
-# neg_feature_freq = pd.DataFrame(neg_frequency_dict.items(), columns = ["feature_word", "frequency"])  
-# pos_feature_freq = pd.DataFrame(pos_frequency_dict.items(), columns = ["feature_word", "frequency"])  
-
-# neg_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Negative Features(words)")
-# pos_feature_freq.plot.bar(x="feature_word", y="frequency", rot=70, figsize=(15, 5), title="Important Positive Features(words)")
+#display most frequent terms by review
+tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (2,4))
+bnb = BernoulliNB(alpha = 1.0)
 
 
+#WIP
+good_train_rev, good_train_val = final_train.loc[final_train.val == 1].text, final_train.loc[final_train.val == 1].val
+doc = tfidf.fit_transform(good_train_rev)
+
+bnb.fit(doc, good_train_val)
+# predict= bnb.predict(X_test_tfidf)
+#Tfidf
+positive_dict, negative_dict = word_importance(tfidf, bnb)
+
+def grouped_reviews(data):
+
+    review_group = ['Positive','Negative']
+    review_val = [1,0]
+   
+    for idx in range(len(review_val)):
+
+positive_df = pd.DataFrame(positive_dict.items(), columns = ["feature_word", "frequency"])  
+negative_df = pd.DataFrame(negative_dict.items(), columns = ["feature_word", "frequency"])  
+
+ax = sns.barplot(x = 'frequency', y = 'feature_word', data = positive_feature_freq)
+ax.set_title('Frequent Positive Terms')
+ax.set(xlabel='Frequency', ylabel = 'Phrase')
+plt.show()
+ax.clear() 
 
 
+
+negative_train_rev, negative_train_val = final_train.loc[final_train.val == 0].text, final_train.loc[final_train.val == 0].val
+docs = tfidf.fit_transform(negative_train_rev)
+# X_test_tfidf = tfidf.transform(X_test)
+bnb.fit(docs, negative_train_val)
+
+negative_frequency_dict, pos_frequency_dict = word_importance(tfidf, bnb)
+negative_feature_freq = pd.DataFrame(negative_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+pos_feature_freq = pd.DataFrame(pos_frequency_dict.items(), columns = ["feature_word", "frequency"])  
+
+ax = sns.barplot(x = 'frequency', y = 'feature_word', data = negative_feature_freq)
+ax.set_title('Frequent negative Terms')
+ax.set(xlabel='Frequency', ylabel = 'Phrase')
+plt.show()
+ax.clear() 
 
 
 #Display top phrases based on TFIDF
-tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,4))
+tfidf = TfidfVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (2,4))
 
 good_train_rev = final_train.loc[final_train.val == 1].text
 
@@ -767,8 +786,8 @@ list_good = list_good.rename(columns = {'index': 'phrases', 0:'tfidf_score'})
 list_good = list_good.sort_values(by = ['tfidf_score'], ascending = False)
 
 ax = sns.barplot(x = 'tfidf_score', y = 'phrases', data = list_good.head(15))
-ax.set_title('TFIDF Positive phrases')
-ax.set(xlabel='Frequency', ylabel = 'Word')
+ax.set_title('TFIDF Positive Terms')
+ax.set(xlabel='Score', ylabel = 'Phrases')
 plt.show()
 ax.clear() 
 
@@ -781,8 +800,7 @@ list_bad = list_bad.rename(columns = {'index': 'phrases', 0:'tfidf_score'})
 list_bad = list_bad.sort_values(by = ['tfidf_score'], ascending = False)
 
 ax = sns.barplot(x = 'tfidf_score', y = 'phrases', data = list_bad.head(15))
-ax.set_title('TFIDF Positive phrases')
-ax.set(xlabel='Frequency', ylabel = 'Word')
+ax.set_title('TFIDF Negative Terms')
+ax.set(xlabel='Score', ylabel = 'Phrases')
 plt.show()
 ax.clear()
-
