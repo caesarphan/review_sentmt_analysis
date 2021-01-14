@@ -56,8 +56,8 @@ data_test = [x.decode('utf-8') for x in data_test]
 
 #for efficiency, randomly sample 300k to train, 10k to test
 rand_seed = random.seed(123)
-size_train = (len(data_train)/40)
-size_test = (len(data_test)/40)
+size_train = (len(data_train)/300)
+size_test = (len(data_test)/300)
 
 # size_train = (10000)
 # size_test = (1000)
@@ -315,7 +315,7 @@ def lemmatized(doc):
 train_df['lemmatized']= train_df['wnl_pos'].apply(lemmatized)
 test_df['lemmatized']= test_df['wnl_pos'].apply(lemmatized)
 
-del wnl
+del [wnl, sample_test, sample_train, punctuation]
 
 #illustrate histogram of words
 train_df['postclean_len'] = train_df['lemmatized'].apply(lambda x: len(x))
@@ -398,7 +398,7 @@ final_test.columns = ['text', 'val', 'label']
 
 #test train split
 X, y = final_train.text, final_train.label
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=rand_seed)
 
 
 #Pipeline Setup
@@ -439,216 +439,77 @@ bnb_tfidf_params= {
     }
 
 
+# lr_tfidf_params= {
+#     # "tfidf__min_df":[0.25,0.5],
+#     # "tfidf__max_df": (0.25, 0.5, 0.75),
+#     'tfidf__ngram_range':((1,1), (1,2), (1,3)),
+#     "tfidf__max_features":(5000, 10000, 15000),
+#     'tfidf__use_idf': (True, False),
+#     'lr__C': (0.1, 1, 10),
+#     'lr__penalty': ['none','l2']
+#     }
+
 lr_tfidf_params= {
     # "tfidf__min_df":[0.25,0.5],
     # "tfidf__max_df": (0.25, 0.5, 0.75),
-    'tfidf__ngram_range':((1,1), (1,2), (1,3)),
-    "tfidf__max_features":(5000, 10000, 15000),
+    'tfidf__ngram_range':((1,1), (1,2)),
+    "tfidf__max_features":(5000, 10000),
     'tfidf__use_idf': (True, False),
-    'lr__C': (0.1, 1, 10),
-    'lr__penalty': ['none','l2', 'elasticnet',]
+    'lr__C': (0.1,0.5, 1, 2),
+    'lr__penalty': ['none','l2']
     }
 
 
 
 #Count Vectorizer Grid Search
 gsearch_tfidf_bnb = GridSearchCV(tfidf_bnb_pipe, param_grid=bnb_tfidf_params,
-                                 cv = 2, verbose = 1, n_jobs = -1)
-gesarch_tfidf_lr = GridSearchCV(tfidf_lr_pipe, param_grid=lr_tfidf_params,
+                                 cv = 5, verbose = 1, n_jobs = -1)
+gsearch_tfidf_lr = GridSearchCV(tfidf_lr_pipe, param_grid=lr_tfidf_params,
                                  cv = 2, verbose = 1, n_jobs = -1)
 
 #fit training data into grid search for best params
+#Best Param with Bernoulli Naive Bayes, TFIDF Vectorization
 gsearch_tfidf_bnb.fit(X_train,y_train)
-gesarch_tfidf_lr.fit(X_train,y_train)
+print("GridSearch Best Params: {}".format(gsearch_tfidf_bnb.best_params_))
+# print(gsearch_tfidf_bnb.best_score_)
+print()
+pred_bnb_tfidf = gsearch_tfidf_bnb.predict(X_test)
+print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, pred_bnb_tfidf))
+print()
+print(classification_report(y_test, pred_bnb_tfidf))
 
-gsearch_tfidf_bnb.best_params_
-gsearch_tfidf_lr.best_params_
+
+#Results Param with Bernoulli Naive Bayes, TFIDF Vectorization        
+gsearch_tfidf_lr.fit(X_train,y_train)     
+print("GridSearch Best Params: {}".format(gsearch_tfidf_lr.best_params_))
+# print(gsearch_tfidf_lr.best_score_)
+print()
+pred_lr_tfidf = gsearch_tfidf_lr.predict(X_test)
+print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, pred_lr_tfidf))
+print()
+print(classification_report(y_test, pred_lr_tfidf))
+
+# GridSearch Best Params: {'lr__C': 2, 'lr__penalty': 'l2', 'tfidf__max_features': 5000, 'tfidf__ngram_range': (1, 2), 'tfidf__use_idf': True}
+
+# Overall Accuracy Score:  0.8566666666666667
+
+#               precision    recall  f1-score   support
+
+#          bad       0.86      0.86      0.86      1222
+#         good       0.85      0.86      0.85      1178
+
+#     accuracy                           0.86      2400
+#    macro avg       0.86      0.86      0.86      2400
+# weighted avg       0.86      0.86      0.86      2400
+
 
 #save your model or results
 joblib.dump(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
-joblib.dump(gsearch_tfidf_lr, 'amzn_tfidf_lr.pkl')
+joblib.dump(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
 
 #load your model for further usage
 joblib.load(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
-joblib.load(gsearch_tfidf_lr, 'amzn_tfidf_lr.pkl')
-
-
-
-#CountVectorizer
-# cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
-
-
-# Predictive Algorithms
-X_train_cv = cv.fit_transform(X_train)
-X_test_cv = cv.transform(X_test)
-
-
-#A1)1 fold BernoulliNB
-bnb = BernoulliNB()
-%time bnb.fit(X_train_cv, y_train)
-
-%time predict= bnb.predict(X_test_cv)
-print()
-print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
-print()
-print('Confusion Matrix: ')
-print(confusion_matrix(y_test, predict))
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Accuracy Score:  0.7996666666666666
-        
-        # Confusion Matrix: 
-        # [[6785 2205]
-        #  [1401 7609]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #          bad       0.83      0.75      0.79      8990
-        #         good       0.78      0.84      0.81      9010
-        
-        #     accuracy                           0.80     18000
-        #    macro avg       0.80      0.80      0.80     18000
-        # weighted avg       0.80      0.80      0.80     18000
-
-
-#A2)1 fold Logistic Regression
-
-lr = LogisticRegression(max_iter = 1000)
-%time lr.fit(X_train_cv, y_train)
-
-%time predict= lr.predict(X_test_cv)
-print()
-print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
-print()
-print('Confusion Matrix: ')
-print(confusion_matrix(y_test, predict))
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Accuracy Score:  0.7947222222222222
-        
-        # Confusion Matrix: 
-        # [[7238 1752]
-        #  [1943 7067]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #          bad       0.79      0.81      0.80      8990
-        #         good       0.80      0.78      0.79      9010
-        
-        #     accuracy                           0.79     18000
-        #    macro avg       0.79      0.79      0.79     18000
-        # weighted avg       0.79      0.79      0.79     18000
-
-
-#A3) BernoulliNB 10 fold cross validation
-kf = KFold(n_splits=10, shuffle=True, random_state=123)
-
-scores = []
-confusion = np.array([[0,0], [0,0]])
-
-for train_indices, test_indices in kf.split(final_train):
-    X_train = final_train.iloc[train_indices]['text']
-    y_train = final_train.iloc[train_indices]['val']
-    
-    
-    X_test = final_train.iloc[test_indices]['text']
-    y_test = final_train.iloc[test_indices]['val']
-     
-    
-    X_train_cv = cv.fit_transform(X_train)
-    X_test_cv = cv.transform(X_test)
-    
-    bnb.fit(X_train_cv, y_train)
-    predict = bnb.predict(X_test_cv)    
-
-
-    confusion += confusion_matrix(y_test, predict)
-    # print(confusion)
-    score = f1_score(y_test, predict)
-    scores.append(score)
-print()
-print('Overall Score:',round(sum(scores)/len(scores),2))
-print()
-print('Confusion Matrix: ')
-print(confusion)
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Score: 0.8
-        
-        # Confusion Matrix: 
-        # [[335 171]
-        #  [ 52 442]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #            0       0.93      0.58      0.72        48
-        #            1       0.71      0.96      0.82        52
-        
-        #     accuracy                           0.78       100
-        #    macro avg       0.82      0.77      0.77       100
-        # weighted avg       0.82      0.78      0.77       100
-
-
-#A4) LogisticRegression 10 fold cross validation
-
-scores = []
-confusion = np.array([[0,0], [0,0]])
-
-
-for train_indices, test_indices in kf.split(final_train):
-    X_train = final_train.iloc[train_indices]['text']
-    y_train = final_train.iloc[train_indices]['val']
-    
-    
-    X_test = final_train.iloc[test_indices]['text']
-    y_test = final_train.iloc[test_indices]['val']
-     
-    
-    X_train_cv = cv.fit_transform(X_train)
-    X_test_cv = cv.transform(X_test)
-    
-    lr.fit(X_train_cv, y_train)
-    predict = lr.predict(X_test_cv)    
-
-
-    confusion += confusion_matrix(y_test, predict)
-    # print(confusion)
-    score = f1_score(y_test, predict)
-    scores.append(score)
-    
-print()
-print('Overall Score:',round(sum(scores)/len(scores),2))
-print()
-print('Confusion Matrix: ')
-print(confusion)
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-        
-        # Overall Score: 0.8
-        
-        # Confusion Matrix: 
-        # [[398 108]
-        #  [ 96 398]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #            0       0.77      0.71      0.74        48
-        #            1       0.75      0.81      0.78        52
-        
-        #     accuracy                           0.76       100
-        #    macro avg       0.76      0.76      0.76       100
-        # weighted avg       0.76      0.76      0.76       100
+joblib.load(gesarch_tfidf_lr, 'amzn_tfidf_lr.pkl')
 
 
 
@@ -828,7 +689,7 @@ print(classification_report(y_test, predict))
 
 
 # #A3) BernoulliNB 10 fold cross validation
-# kf = KFold(n_splits=10, shuffle=True, random_state=123)
+# kf = KFold(n_splits=10, shuffle=True, random_state=rand_seed)
 
 # scores = []
 # confusion = np.array([[0,0], [0,0]])
@@ -879,52 +740,6 @@ print(classification_report(y_test, predict))
 
 
 
-#Accuracy against testing dataset
-
-#CountVectorization
-X_train, y_train = final_train.text, final_train.label
-X_test, y_test = final_test.text, final_test.label
-# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
-
-
-
-
-
-
-#A1)1 fold BernoulliNB
-X_train_cv = cv.fit_transform(X_train)
-X_test_cv = cv.transform(X_test)
-
-bnb = BernoulliNB()
-%time bnb.fit(X_train_cv, y_train)
-
-%time predict= bnb.predict(X_test_cv)
-print()
-print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
-print()
-print('Confusion Matrix: ')
-print(confusion_matrix(y_test, predict))
-print()
-print('Classification Report: ')
-print(classification_report(y_test, predict))
-
-        # Overall Accuracy Score:  0.6483
-        
-        # Confusion Matrix: 
-        # [[1998 3001]
-        #  [ 516 4485]]
-        
-        # Classification Report: 
-        #               precision    recall  f1-score   support
-        
-        #          bad       0.79      0.40      0.53      4999
-        #         good       0.60      0.90      0.72      5001
-        
-        #     accuracy                           0.65     10000
-        #    macro avg       0.70      0.65      0.63     10000
-        # weighted avg       0.70      0.65      0.63     10000
-
-
 
 
 
@@ -933,7 +748,7 @@ print(classification_report(y_test, predict))
 #TFIDF Vectorization
 X_train, y_train = final_train.text, final_train.label
 X_test, y_test = final_test.text, final_test.label
-# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=123)
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=rand_seed)
 
 #A1)1 fold BernoulliNB
 X_train_cv = cv.fit_transform(X_train)
@@ -1086,4 +901,181 @@ ax.clear()
     
     
     
+    #CountVectorizer
+# cv = CountVectorizer(min_df = 0.00, max_df=1.00, max_features=10000, ngram_range = (1,2))
+
+
+# Predictive Algorithms
+X_train_cv = cv.fit_transform(X_train)
+X_test_cv = cv.transform(X_test)
+
+
+#A1)1 fold BernoulliNB
+bnb = BernoulliNB()
+%time bnb.fit(X_train_cv, y_train)
+
+%time predict= bnb.predict(X_test_cv)
+print()
+print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
+print()
+print('Confusion Matrix: ')
+print(confusion_matrix(y_test, predict))
+print()
+print('Classification Report: ')
+print(classification_report(y_test, predict))
+
+        # Overall Accuracy Score:  0.7996666666666666
+        
+        # Confusion Matrix: 
+        # [[6785 2205]
+        #  [1401 7609]]
+        
+        # Classification Report: 
+        #               precision    recall  f1-score   support
+        
+        #          bad       0.83      0.75      0.79      8990
+        #         good       0.78      0.84      0.81      9010
+        
+        #     accuracy                           0.80     18000
+        #    macro avg       0.80      0.80      0.80     18000
+        # weighted avg       0.80      0.80      0.80     18000
+
+
+#A2)1 fold Logistic Regression
+
+lr = LogisticRegression(max_iter = 1000)
+%time lr.fit(X_train_cv, y_train)
+
+%time predict= lr.predict(X_test_cv)
+print()
+print('Overall Accuracy Score: ',metrics.accuracy_score(y_test, predict))
+print()
+print('Confusion Matrix: ')
+print(confusion_matrix(y_test, predict))
+print()
+print('Classification Report: ')
+print(classification_report(y_test, predict))
+
+        # Overall Accuracy Score:  0.7947222222222222
+        
+        # Confusion Matrix: 
+        # [[7238 1752]
+        #  [1943 7067]]
+        
+        # Classification Report: 
+        #               precision    recall  f1-score   support
+        
+        #          bad       0.79      0.81      0.80      8990
+        #         good       0.80      0.78      0.79      9010
+        
+        #     accuracy                           0.79     18000
+        #    macro avg       0.79      0.79      0.79     18000
+        # weighted avg       0.79      0.79      0.79     18000
+
+
+#A3) BernoulliNB 10 fold cross validation
+kf = KFold(n_splits=10, shuffle=True, random_state=rand_seed)
+
+scores = []
+confusion = np.array([[0,0], [0,0]])
+
+for train_indices, test_indices in kf.split(final_train):
+    X_train = final_train.iloc[train_indices]['text']
+    y_train = final_train.iloc[train_indices]['val']
     
+    
+    X_test = final_train.iloc[test_indices]['text']
+    y_test = final_train.iloc[test_indices]['val']
+     
+    
+    X_train_cv = cv.fit_transform(X_train)
+    X_test_cv = cv.transform(X_test)
+    
+    bnb.fit(X_train_cv, y_train)
+    predict = bnb.predict(X_test_cv)    
+
+
+    confusion += confusion_matrix(y_test, predict)
+    # print(confusion)
+    score = f1_score(y_test, predict)
+    scores.append(score)
+print()
+print('Overall Score:',round(sum(scores)/len(scores),2))
+print()
+print('Confusion Matrix: ')
+print(confusion)
+print()
+print('Classification Report: ')
+print(classification_report(y_test, predict))
+
+        # Overall Score: 0.8
+        
+        # Confusion Matrix: 
+        # [[335 171]
+        #  [ 52 442]]
+        
+        # Classification Report: 
+        #               precision    recall  f1-score   support
+        
+        #            0       0.93      0.58      0.72        48
+        #            1       0.71      0.96      0.82        52
+        
+        #     accuracy                           0.78       100
+        #    macro avg       0.82      0.77      0.77       100
+        # weighted avg       0.82      0.78      0.77       100
+
+
+#A4) LogisticRegression 10 fold cross validation
+
+scores = []
+confusion = np.array([[0,0], [0,0]])
+
+
+for train_indices, test_indices in kf.split(final_train):
+    X_train = final_train.iloc[train_indices]['text']
+    y_train = final_train.iloc[train_indices]['val']
+    
+    
+    X_test = final_train.iloc[test_indices]['text']
+    y_test = final_train.iloc[test_indices]['val']
+     
+    
+    X_train_cv = cv.fit_transform(X_train)
+    X_test_cv = cv.transform(X_test)
+    
+    lr.fit(X_train_cv, y_train)
+    predict = lr.predict(X_test_cv)    
+
+
+    confusion += confusion_matrix(y_test, predict)
+    # print(confusion)
+    score = f1_score(y_test, predict)
+    scores.append(score)
+    
+print()
+print('Overall Score:',round(sum(scores)/len(scores),2))
+print()
+print('Confusion Matrix: ')
+print(confusion)
+print()
+print('Classification Report: ')
+print(classification_report(y_test, predict))
+        
+        # Overall Score: 0.8
+        
+        # Confusion Matrix: 
+        # [[398 108]
+        #  [ 96 398]]
+        
+        # Classification Report: 
+        #               precision    recall  f1-score   support
+        
+        #            0       0.77      0.71      0.74        48
+        #            1       0.75      0.81      0.78        52
+        
+        #     accuracy                           0.76       100
+        #    macro avg       0.76      0.76      0.76       100
+        # weighted avg       0.76      0.76      0.76       100
+
+
+
