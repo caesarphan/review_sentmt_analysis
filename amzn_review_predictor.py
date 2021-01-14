@@ -420,7 +420,7 @@ tfidf_bnb_pipe = Pipeline([
 
 tfidf_lr_pipe = Pipeline([
     ('tfidf', TfidfVectorizer()),
-    ('lr', LogisticRegression(max_iter = 10000, random_state=rand_seed))
+    ('lr', LogisticRegression(max_iter = 20000, random_state=rand_seed))
     ])
 
 tfidf_bnb_pipe.fit(X_train, y_train)
@@ -445,23 +445,24 @@ lr_tfidf_params= {
     'tfidf__ngram_range':((1,1), (1,2), (1,3)),
     "tfidf__max_features":(5000, 10000, 15000),
     'tfidf__use_idf': (True, False),
-    'lr__C': (0.01, 0.1, 1, 10),
-    'lr__penalty': ['l1', 'l2']
+    'lr__C': (0.1, 1, 10),
+    'lr__penalty': ['none','l2', 'elasticnet',]
     }
 
 
 
 #Count Vectorizer Grid Search
 gsearch_tfidf_bnb = GridSearchCV(tfidf_bnb_pipe, param_grid=bnb_tfidf_params,
-                                 cv = 5, verbose = 1, n_jobs = -1)
+                                 cv = 2, verbose = 1, n_jobs = -1)
 gesarch_tfidf_lr = GridSearchCV(tfidf_lr_pipe, param_grid=lr_tfidf_params,
-                                 cv = 5, verbose = 1, n_jobs = -1)
+                                 cv = 2, verbose = 1, n_jobs = -1)
 
 #fit training data into grid search for best params
 gsearch_tfidf_bnb.fit(X_train,y_train)
 gesarch_tfidf_lr.fit(X_train,y_train)
 
 gsearch_tfidf_bnb.best_params_
+gsearch_tfidf_lr.best_params_
 
 #save your model or results
 joblib.dump(gsearch_tfidf_bnb, 'amzn_tfidf_bnb.pkl')
